@@ -43,6 +43,7 @@ internal sealed class StructureBuilder
     {
         RawElement element => Element(element),
         RawMarkedContent marked => MarkedText(marked),
+        RawObjectReference reference => new StructureObjectReference(reference.Subtype ?? "Unknown", reference.Page, Link(reference)),
         _ => null,
     };
 
@@ -53,6 +54,22 @@ internal sealed class StructureBuilder
         && text.Length > 0
             ? new StructureText(text, page, marked.Mcid)
             : null;
+
+    // The layout link on the same page with the same rectangle (normalized and rounded like the layout), so its text
+    // and target resolve exactly as in LayoutPage.Links.
+    private LayoutLink? Link(RawObjectReference reference)
+    {
+        if (reference.Subtype != "Link" || reference.Page is not { } page || page < 1 || page > _layout.Model.Pages.Count
+            || reference.Rectangle is not { } r || r.Any(double.IsNaN))
+        {
+            return null;
+        }
+
+        var box = Geometry.Round(new LayoutBox(Math.Min(r[0], r[2]), Math.Min(r[1], r[3]), Math.Max(r[0], r[2]), Math.Max(r[1], r[3])), _options.Decimals);
+        return _layout.Model.Pages[page - 1].Links.FirstOrDefault(link =>
+            Math.Abs(link.Box.Left - box.Left) < 0.5 && Math.Abs(link.Box.Bottom - box.Bottom) < 0.5 &&
+            Math.Abs(link.Box.Right - box.Right) < 0.5 && Math.Abs(link.Box.Top - box.Top) < 0.5);
+    }
 
     // RoleMap can chain (Custom -> Custom2 -> P); stop at a role that isn't mapped further.
     private string MapRole(string role)

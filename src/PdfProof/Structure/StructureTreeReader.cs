@@ -68,7 +68,7 @@ internal sealed class StructureTreeReader
             case DictionaryToken dictionary when Name(dictionary, "Type") == "MCR":
                 return Get(dictionary, "MCID") is NumericToken id ? new RawMarkedContent(PageOf(dictionary) ?? page, id.Int) : null;
             case DictionaryToken dictionary when Name(dictionary, "Type") == "OBJR":
-                return null; // Task 4
+                return ObjectReference(dictionary, page);
             case DictionaryToken dictionary when Name(dictionary, "S") is { } role:
                 return ReadElement(dictionary, role, page, depth);
             default:
@@ -82,6 +82,26 @@ internal sealed class StructureTreeReader
         var kids = Kids(element).Select(kid => ReadKid(kid, page, depth + 1)).OfType<RawKid>().ToList();
         return new RawElement(role, page, null, null, null, null, 1, 1, kids);
     }
+
+    private RawObjectReference ObjectReference(DictionaryToken objr, int? elementPage)
+    {
+        if (Resolve(Get(objr, "Obj")) is not DictionaryToken annotation)
+        {
+            return new RawObjectReference(PageOf(objr) ?? elementPage, null, null);
+        }
+
+        double[]? rectangle = null;
+        if (Resolve(Get(annotation, "Rect")) is ArrayToken { Length: 4 } rect)
+        {
+            rectangle = rect.Data.Select(token => Resolve(token) is NumericToken number ? number.Double : double.NaN).ToArray();
+        }
+
+        return new RawObjectReference(PageOf(objr) ?? AnnotationPage(annotation) ?? elementPage, Name(annotation, "Subtype"), rectangle);
+    }
+
+    // An annotation's own /P (page) entry.
+    private int? AnnotationPage(DictionaryToken annotation) =>
+        Get(annotation, "P") is IndirectReferenceToken reference && _pageNumbers.TryGetValue(reference.Data, out var number) ? number : null;
 
     // Page objects in page-tree order, so /Pg references resolve to page numbers.
     private void IndexPages(IToken? pages)

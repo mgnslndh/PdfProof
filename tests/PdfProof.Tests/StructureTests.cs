@@ -85,4 +85,69 @@ public sealed class StructureTests
         Assert.Equal(["Visible", ""], structure.Root.Children.Select(n => n.Text));
         Assert.Empty(structure.Root.Children[1].Content);
     }
+
+    [Fact]
+    public void Content_keeps_document_order_of_text_child_elements_and_link_references()
+    {
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(
+            RawPdf.Marked("P", 0, RawPdf.Text(50, 700, "Questions? Visit")) +
+            RawPdf.Marked("Link", 1, RawPdf.Text(150, 700, "our support site")) +
+            RawPdf.Marked("P", 2, RawPdf.Text(250, 700, "today.")));
+        var annotation = pdf.Add("<< /Type /Annot /Subtype /Link /Rect [145 695 245 715] /A << /S /URI /URI (https://example.com/support) >> >>");
+        pdf.Annotate(page, $"{annotation} 0 R");
+        var link = pdf.Add($"<< /S /Link /Pg {page} 0 R /K [1 << /Type /OBJR /Obj {annotation} 0 R >>] >>");
+        var paragraph = pdf.Add($"<< /S /P /Pg {page} 0 R /K [0 {link} 0 R 2] >>");
+        pdf.Tag($"{paragraph} 0 R");
+
+        var node = Assert.Single(PdfProofDocument.Load(pdf.Build()).Structure.Root.Children);
+
+        Assert.Equal("Questions? Visit our support site today.", node.Text);
+        Assert.Collection(
+            node.Content,
+            item => Assert.Equal("Questions? Visit", Assert.IsType<StructureText>(item).Text),
+            item => Assert.Equal("Link", Assert.IsType<StructureNode>(item).Role),
+            item => Assert.Equal("today.", Assert.IsType<StructureText>(item).Text));
+        var linkNode = node.Children[0];
+        var reference = Assert.Single(linkNode.Content.OfType<StructureObjectReference>());
+        Assert.Equal("Link", reference.Type);
+        Assert.Equal(("our support site", "https://example.com/support"), (reference.Link!.Text, reference.Link.Uri));
+        Assert.Equal("our support site", linkNode.Text);
+    }
+
+    [Fact]
+    public void A_link_annotation_on_a_paragraph_is_kept_where_the_producer_put_it()
+    {
+        // QuestPDF attaches link annotations to the enclosing P instead of a Link element. The structure model
+        // shows that as it is; the semantic layer (Plan 5) repairs it.
+        var pdf = new RawPdf();
+        var first = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 700, "Read the terms")));
+        var second = pdf.AddPage(RawPdf.Text(50, 750, "Terms"));
+        var annotation = pdf.Add($"<< /Type /Annot /Subtype /Link /Rect [45 715 140 695] /A << /S /GoTo /D [{second} 0 R /Fit] >> >>");
+        pdf.Annotate(first, $"{annotation} 0 R");
+        var paragraph = pdf.Add($"<< /S /P /Pg {first} 0 R /K [0 << /Type /OBJR /Obj {annotation} 0 R >>] >>");
+        pdf.Tag($"{paragraph} 0 R");
+
+        var node = Assert.Single(PdfProofDocument.Load(pdf.Build()).Structure.Root.Children);
+
+        Assert.Equal("P", node.Role);
+        var reference = Assert.Single(node.Content.OfType<StructureObjectReference>());
+        Assert.Equal(2, reference.Link!.TargetPage); // the rectangle's corners are reversed: Review Focus 5
+    }
+
+    [Fact]
+    public void A_reference_to_a_non_link_annotation_has_no_link()
+    {
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 700, "Note")));
+        var annotation = pdf.Add("<< /Type /Annot /Subtype /Text /Rect [300 300 320 320] /Contents (A note) >>");
+        pdf.Annotate(page, $"{annotation} 0 R");
+        var paragraph = pdf.Add($"<< /S /P /Pg {page} 0 R /K [0 << /Type /OBJR /Obj {annotation} 0 R >>] >>");
+        pdf.Tag($"{paragraph} 0 R");
+
+        var reference = Assert.Single(PdfProofDocument.Load(pdf.Build()).Structure.Root.Children[0].Content.OfType<StructureObjectReference>());
+
+        Assert.Equal(("Text", (int?)1), (reference.Type, reference.Page));
+        Assert.Null(reference.Link);
+    }
 }
