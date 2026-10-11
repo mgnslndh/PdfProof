@@ -133,7 +133,10 @@ public sealed class PdfProofDocument
     // options is null when the caller gave none: the profile is then detected from the producer.
     private static PdfProofDocument Open(byte[] pdf, PdfProofOptions? options)
     {
-        using var document = PdfPigCall.Read(() => PdfDocument.Open(pdf));
+        // Clipping is a parsing option, so it is read from the options before the profile is known. Every profile
+        // uses the same layout options today; when they differ, detection must happen before this point.
+        var applyClipping = (options?.Layout ?? LayoutOptions.Default).ApplyClipping;
+        using var document = PdfPigCall.Read(() => PdfDocument.Open(pdf, new ParsingOptions { ClipPaths = applyClipping }));
         var metadata = PdfPigCall.Read(() => MetadataReader.Read(document));
 
         var detected = options is null;

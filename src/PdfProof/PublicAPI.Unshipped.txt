@@ -154,3 +154,22 @@ static PdfProof.Layout.LayoutStrategies.Rows.get -> PdfProof.Layout.ILayoutStrat
 PdfProof.Layout.LayoutOptions.Strategy.get -> PdfProof.Layout.ILayoutStrategy!
 PdfProof.Layout.LayoutOptions.Strategy.init -> void
 static PdfProof.Layout.LayoutStrategies.ReadingOrder.get -> PdfProof.Layout.ILayoutStrategy!
+PdfProof.Layout.LayoutAnnotation
+PdfProof.Layout.LayoutAnnotation.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutAnnotation.Content.get -> string?
+PdfProof.Layout.LayoutAnnotation.Type.get -> string!
+PdfProof.Layout.LayoutImage
+PdfProof.Layout.LayoutImage.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutImage.PixelHeight.get -> int
+PdfProof.Layout.LayoutImage.PixelWidth.get -> int
+PdfProof.Layout.LayoutImage.Sha256.get -> string!
+PdfProof.Layout.LayoutLink
+PdfProof.Layout.LayoutLink.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutLink.TargetPage.get -> int?
+PdfProof.Layout.LayoutLink.Text.get -> string!
+PdfProof.Layout.LayoutLink.Uri.get -> string?
+PdfProof.Layout.LayoutOptions.ApplyClipping.get -> bool
+PdfProof.Layout.LayoutOptions.ApplyClipping.init -> void
+PdfProof.Layout.LayoutPage.Annotations.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutAnnotation!>!
+PdfProof.Layout.LayoutPage.Images.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutImage!>!
+PdfProof.Layout.LayoutPage.Links.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutLink!>!
