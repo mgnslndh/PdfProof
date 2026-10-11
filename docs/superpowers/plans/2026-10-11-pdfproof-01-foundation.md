@@ -19,13 +19,13 @@ The spec's first milestone (`0.1.0-alpha`, spec §11.5) is split into seven plan
 
 | Plan | Delivers |
 |---|---|
-| **1 Foundation (this plan)** | Repo settings, `PdfProofDocument.Load` + metadata, `PdfAssertionException` + xUnit proof (OQ-1), Cake build, packaging, CI |
+| **1 Foundation (this plan)** | Repo settings, `PdfProofDocument.Load` + metadata, `PdfAssertionException` + xUnit proof (OQ-1), Cake build, packaging, CI, `AGENTS.md` |
 | 2 Layout model | Port of the spike's layout: letters → words → lines → blocks, `Rows`/`ReadingOrder`, rotation, clipping, normalization, links, images, fonts, options and profiles |
 | 3 Structure model | `StructureModel` (empty root when untagged), structure tree reader, RoleMap, MCIDs, OBJR links |
 | 4 Fixture generator and corpus | `tools/PdfProof.FixtureGenerator`, the `invoice` document for each producer, `GenerateFixtures`/`FetchCorpus` Cake targets, the CI fixtures job, the corpus test matrix |
 | 5 Semantic passes | Candidate blocks, passes 0–7, `SemanticModel`, decision log |
 | 6 Export | Export tree, scrubbing, Markdown and JSON writers, JSON Schema v1, determinism tests |
-| 7 CLI and `0.1.0-alpha` | `pdfproof export`/`explain` (Spectre.Console.Cli), `release.yml`, first pre-release |
+| 7 CLI, skill and `0.1.0-alpha` | `pdfproof export`/`explain`/`skill install\|status\|uninstall` (Spectre.Console.Cli), the agent skill's exploring and snapshot parts with `CheckSkill`, `release.yml`, first pre-release |
 
 ## Global Constraints
 
@@ -37,6 +37,7 @@ The spec's first milestone (`0.1.0-alpha`, spec §11.5) is split into seven plan
 - Never write the name of the author's employer, or real company or customer names, anywhere in the repository (spec D19). Sample data stays neutral.
 - Line endings are LF in the repository (`.gitattributes`). `build.sh` and `build.ps1` are executable and LF.
 - Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- From Task 6 on, `AGENTS.md` is updated in the same change whenever a task adds commands, projects or rules (spec §16.4).
 
 ## Review Focus
 
@@ -1572,7 +1573,99 @@ git commit -m "Add CI workflow and repository README
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 5: Hand over for the first CI run**
+---
+
+### Task 6: `AGENTS.md` and `CLAUDE.md` for agents working on this repository
+
+Written last, so every command it names exists and has been run.
+
+**Files:**
+- Create: `AGENTS.md`, `CLAUDE.md`
+
+**Interfaces:**
+- Consumes: the commands and layout from Tasks 1–5.
+- Produces: the contributor guidance that Plans 2–7 keep current.
+
+- [ ] **Step 1: Write `AGENTS.md`**
+
+`AGENTS.md`:
+````markdown
+# AGENTS.md
+
+Guidance for coding agents (Codex, Copilot, Claude Code) working on this repository. Claude Code reads it through
+`CLAUDE.md`.
+
+## What this is
+
+PdfProof is a .NET library family for testing generated PDFs. It reads a PDF with PdfPig into layout, structure and
+semantic models, exports deterministic Markdown and JSON, and offers assertions on meaning (`PdfAssert`).
+- Design: `docs/superpowers/specs/2026-10-11-pdfproof-v1-design.md`. It is the source of truth; read the relevant
+  section before changing behavior.
+- Implementation plans: `docs/superpowers/plans/`.
+
+## Commands
+
+```bash
+./build.ps1                      # or ./build.sh: build tests, build, test, pack (what CI runs)
+./build.ps1 --target=Test        # build and test only
+dotnet test --project tests/PdfProof.Tests/PdfProof.Tests.csproj   # one test project
+```
+
+On Windows, tests run on net48 and net10.0; elsewhere on net10.0 only.
+
+## Layout
+
+| Path | What |
+|---|---|
+| `src/PdfProof` | Core: `PdfProofDocument`, models, export (netstandard2.0; net8.0; net10.0) |
+| `src/PdfProof.Testing` | Assertions; `PdfAssertionException` |
+| `tests/` | xUnit v3 on Microsoft.Testing.Platform |
+| `build/` | Cake.Sdk build (`Build`), reusable helpers (`Build.Cake.Extensions`) and their tests |
+| `assets/branding/` | Logo and icon; see `assets/README.md` |
+
+## Rules
+
+- **No real company or customer names anywhere**: code, tests, samples, docs, commit messages. Use neutral sample
+  data ("Consulting, senior", `example.com`).
+- **TDD:** write the failing test first, see it fail, then implement.
+- **Public API:** every public API change is recorded in that project's `PublicAPI.Unshipped.txt`; the build fails
+  otherwise. Every public member has XML docs.
+- **net48 is a real target.** Libraries build for netstandard2.0; use Polyfill for newer APIs and run the tests on
+  net48 on Windows.
+- **Deterministic output:** invariant culture, `\n` line endings, no unordered iteration, no timestamps.
+- **Output changes are breaking for users.** A change to approved Markdown/JSON output needs re-approval and an
+  "Output changes" entry in the changelog.
+- **Corpus:** generated PDFs are never committed. External PDFs are listed with URL, SHA-256 and license.
+- **Dependencies:** versions are pinned in `Directory.Packages.props`; upgrade deliberately.
+- **Keep this file current:** a change that adds commands, projects or rules updates `AGENTS.md` too.
+````
+
+`CLAUDE.md`:
+```markdown
+@AGENTS.md
+```
+
+- [ ] **Step 2: Verify every command in `AGENTS.md`**
+
+Run: `./build.ps1 --target=Test`
+Expected: passes.
+
+Run: `dotnet test --project tests/PdfProof.Tests/PdfProof.Tests.csproj`
+Expected: 10 tests pass on each target framework.
+
+Search the repository for real company names before committing. `git grep -n -i "<name>"` must return nothing for the
+names the human partner has listed as off-limits. Ask them for the list if you don't have it; don't guess.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add AGENTS.md CLAUDE.md
+git commit -m "Add AGENTS.md and CLAUDE.md for agents working on the repository
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+- [ ] **Step 4: Hand over for the first CI run**
 
 Pushing publishes the work, so **don't push without asking.** Tell the human partner that the branch is ready to push, and that the first CI run is what proves Linux (net10.0 only) and the GitHub-hosted Windows runner (net48 + net10.0).
 
@@ -1594,8 +1687,10 @@ Pushing publishes the work, so **don't push without asking.** Tell the human par
   | §11.3 packaging (deterministic, SourceLink, snupkg, README, icon, PublicApiAnalyzers) | 1, 2, 4 |
   | §11.2 CI, first stage | 5 |
   | §12 test stack (xUnit v3 + MTP, net48 + net10.0) | 1, 2 |
+  | D21 / §16.4 `AGENTS.md` + `CLAUDE.md` | 6 |
 
 - **Deferred on purpose:**
   - `PdfProofOptions`, logging and profiles go to Plan 2, which first needs them.
   - The fixtures job and `PDFPROOF_REQUIRE_FIXTURES` go to Plan 4.
   - `release.yml` and reserving the NuGet prefix go to Plan 7.
+  - The agent skill, `pdfproof skill …` and `CheckSkill` (§16.1–16.3) go to Plan 7, together with the CLI.
