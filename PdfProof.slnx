@@ -5,6 +5,10 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PdfProof.Tests/PdfProof.Tests.csproj" />
+    <Project Path="tests/PdfProof.FixtureGenerator.Tests/PdfProof.FixtureGenerator.Tests.csproj" />
     <Project Path="tests/PdfProof.Testing.Tests/PdfProof.Testing.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PdfProof.FixtureGenerator/PdfProof.FixtureGenerator.csproj" />
   </Folder>
 </Solution>
