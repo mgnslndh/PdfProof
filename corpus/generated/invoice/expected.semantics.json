@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "metadata": { "title": "Invoice", "pageCount": 2 },
+  "semantics": {
+    "blocks": [
+      { "type": "heading", "level": 1, "text": "Invoice", "page": 1 },
+      { "type": "paragraph", "text": "Questions? Visit our support site or e-mail us.", "page": 1,
+        "links": [{ "text": "our support site", "uri": "https://example.com/support" }] },
+      { "type": "paragraph", "text": "Read the terms and conditions", "page": 1,
+        "links": [{ "text": "Read the terms and conditions", "page": 2 }] },
+      { "type": "table", "page": 1, "header": ["Item", "Qty", "Amount"],
+        "rows": [["Consulting, senior", "10", "14 500,00 SEK"]] },
+      { "type": "heading", "level": 2, "text": "Terms and conditions", "page": 2 },
+      { "type": "list", "page": 2, "items": ["Payment within 30 days."] }
+    ],
+    "artifacts": [{ "role": "footer", "text": "Page {n} of {N}", "pages": "1-2" }]
+  }
+}

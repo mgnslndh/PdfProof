@@ -10,6 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Select.HtmlToPdf.NetCore" />
+    <PackageReference Include="Microsoft.Playwright" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="PdfProof.FixtureGenerator.Tests" />
   </ItemGroup>
 
