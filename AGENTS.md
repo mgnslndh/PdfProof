@@ -17,6 +17,8 @@ semantic models, exports deterministic Markdown and JSON, and offers assertions 
 ./build.ps1                      # or ./build.sh: build tests, build, test, pack (what CI runs)
 ./build.ps1 --target=Test        # build and test only
 dotnet test --project tests/PdfProof.Tests/PdfProof.Tests.csproj   # one test project
+# record new public API (run after adding public members; then rebuild and review the appended lines)
+dotnet build src/PdfProof/PdfProof.csproj 2>&1 | sed -n "s/.*error RS0016: Symbol '\([^']*\)' is not part of the declared public API.*/\1/p" | sort -u >> src/PdfProof/PublicAPI.Unshipped.txt
 ```
 
 On Windows, tests run on net48 and net10.0; elsewhere on net10.0 only.
@@ -25,8 +27,9 @@ On Windows, tests run on net48 and net10.0; elsewhere on net10.0 only.
 
 | Path | What |
 |---|---|
-| `src/PdfProof` | Core: `PdfProofDocument`, models, export (netstandard2.0; net8.0; net10.0) |
+| `src/PdfProof` | Core: `PdfProofDocument`, options and profiles, diagnostics; `Layout/` (layout model and strategies) (netstandard2.0; net8.0; net10.0) |
 | `src/PdfProof.Testing` | Assertions; `PdfAssertionException` |
+| `src/Shared` | Source shared into every `src/` project (`Throw`) |
 | `tests/` | xUnit v3 on Microsoft.Testing.Platform |
 | `build/` | Cake.Sdk build (`Build`), reusable helpers (`Build.Cake.Extensions`) and their tests |
 | `assets/branding/` | Logo and icon; see `assets/README.md` |
@@ -37,6 +40,8 @@ On Windows, tests run on net48 and net10.0; elsewhere on net10.0 only.
   data ("Consulting, senior", `example.com`).
 - **TDD:** write the failing test first, see it fail, then implement.
 - **Throwing:** guard clauses and throws use `Throw` (`src/Shared/Throw/`, namespace `PdfProof.Shared`, implicit in every `src/` project): `Throw.IfNull(x)`, `Throw.ArgumentException(…)`. BCL helpers go in `Throw.cs` (kept close to its dotnet/extensions upstream so it can be shared), PdfProof helpers in `Throw.PdfProof.cs`.
+- **Test PDFs:** build them in code. Use `tests/PdfProof.Tests/RawPdf.cs` (raw PDF syntax: exact positions, clipping, rotation, annotations, outlines) or PdfPig's `PdfDocumentBuilder`. Don't commit generated PDF files.
+- **Calls into PdfPig** go through `PdfPigCall.Read`, so parser errors become `PdfProofException` and PdfProof bugs don't.
 - **Public API:** every public API change is recorded in that project's `PublicAPI.Unshipped.txt`; the build fails
   otherwise. Every public member has XML docs.
 - **net48 is a real target.** Libraries build for netstandard2.0; use Polyfill for newer APIs and run the tests on

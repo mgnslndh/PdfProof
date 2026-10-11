@@ -148,6 +148,10 @@ public sealed class PdfProofDocument
             detected ? $"{effective.Profile} (detected from producer \"{metadata.Producer}\")" : $"{effective.Profile} (from options)");
 
         var layout = LayoutBuilder.Build(document, effective.Layout, diagnostics);
+        if (layout.Pages.Count > 0 && layout.Pages.All(page => page.Blocks.Count == 0))
+        {
+            diagnostics.Add(PdfDiagnosticCodes.NoTextLayer, null, "No page has extractable text; the PDF may be a scan. OCR is not supported.");
+        }
         return new PdfProofDocument(metadata, layout, diagnostics.ToDiagnostics(effective.Profile, detected));
     }
 }

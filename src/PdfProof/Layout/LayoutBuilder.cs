@@ -4,6 +4,7 @@ using UglyToad.PdfPig.Actions;
 using UglyToad.PdfPig.Annotations;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
+using UglyToad.PdfPig.Outline;
 using UglyToad.PdfPig.Util;
 
 namespace PdfProof.Layout;
@@ -25,7 +26,10 @@ internal static class LayoutBuilder
             pages.Add(BuildPage(page, pageNumber, options, diagnostics));
         }
 
-        return new LayoutModel(pages);
+        var bookmarks = PdfPigCall.Read(() => document.TryGetBookmarks(out var outline)
+            ? outline.Roots.Select(Bookmark).ToList()
+            : new List<LayoutBookmark>());
+        return new LayoutModel(pages, bookmarks);
     }
 
     private static LayoutPage BuildPage(Page page, int number, LayoutOptions options, DiagnosticsCollector diagnostics)
@@ -128,4 +132,10 @@ internal static class LayoutBuilder
             .Where(lines => lines.Count > 0)
             .Select(lines => LineFactory.Block(lines, LayoutOrientation.Horizontal))
             .ToList();
+
+    private static LayoutBookmark Bookmark(BookmarkNode node) => new(
+        node.Title,
+        (node as DocumentBookmarkNode)?.PageNumber,
+        (node as UriBookmarkNode)?.Uri,
+        node.Children.Select(Bookmark).ToList());
 }

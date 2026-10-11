@@ -173,3 +173,9 @@ PdfProof.Layout.LayoutOptions.ApplyClipping.init -> void
 PdfProof.Layout.LayoutPage.Annotations.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutAnnotation!>!
 PdfProof.Layout.LayoutPage.Images.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutImage!>!
 PdfProof.Layout.LayoutPage.Links.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutLink!>!
+PdfProof.Layout.LayoutBookmark
+PdfProof.Layout.LayoutBookmark.Children.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutBookmark!>!
+PdfProof.Layout.LayoutBookmark.PageNumber.get -> int?
+PdfProof.Layout.LayoutBookmark.Title.get -> string!
+PdfProof.Layout.LayoutBookmark.Uri.get -> string?
+PdfProof.Layout.LayoutModel.Bookmarks.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutBookmark!>!
