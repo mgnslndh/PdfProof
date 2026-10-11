@@ -15,5 +15,7 @@
     <PackageVersion Include="Cake.BuildSystems.Module" Version="9.0.0" />
     <!-- Version from the latest git tag (v-prefixed); untagged builds get 0.0.0-alpha.0.<height>. -->
     <PackageVersion Include="MinVer" Version="8.0.0" />
+    <!-- Tests only: encrypts test PDFs in memory (PdfPig reads encrypted PDFs but can't write them). -->
+    <PackageVersion Include="PDFsharp" Version="6.2.4" />
   </ItemGroup>
 </Project>

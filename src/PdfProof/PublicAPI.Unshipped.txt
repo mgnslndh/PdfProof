@@ -218,3 +218,6 @@ static PdfProof.PdfProfile.SelectPdf.get -> PdfProof.PdfProfile!
 static PdfProof.PdfProfile.Typst.get -> PdfProof.PdfProfile!
 static PdfProof.PdfProfile.operator !=(PdfProof.PdfProfile? left, PdfProof.PdfProfile? right) -> bool
 static PdfProof.PdfProfile.operator ==(PdfProof.PdfProfile? left, PdfProof.PdfProfile? right) -> bool
+PdfProof.PdfProofOptions.Password.get -> string?
+PdfProof.PdfProofOptions.Password.init -> void
+const PdfProof.PdfDiagnosticCodes.Encrypted = "Encrypted" -> string!

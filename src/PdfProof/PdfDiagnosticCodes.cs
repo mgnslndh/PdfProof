@@ -6,6 +6,9 @@ public static class PdfDiagnosticCodes
     /// <summary>Which profile was used, and whether it was detected or given.</summary>
     public const string Profile = "Profile";
 
+    /// <summary>The PDF is encrypted, and how it was opened.</summary>
+    public const string Encrypted = "Encrypted";
+
     /// <summary>What the layout step produced for a page.</summary>
     public const string Layout = "Layout";
 

@@ -2,6 +2,7 @@ using System.Globalization;
 using PdfProof.Layout;
 using PdfProof.Structure;
 using UglyToad.PdfPig;
+using UglyToad.PdfPig.Exceptions;
 
 namespace PdfProof;
 
@@ -141,7 +142,7 @@ public sealed class PdfProofDocument
         // Clipping is a parsing option, so it is read before the profile is detected. Every preset uses the same
         // layout options today; when they differ, detection must read the info dictionary before the pages (Plan 5).
         var applyClipping = (options.Profile ?? PdfProfile.Default).Layout.ApplyClipping;
-        using var document = PdfPigCall.Read(() => PdfDocument.Open(pdf, new ParsingOptions { ClipPaths = applyClipping }));
+        using var document = OpenPdf(pdf, options.Password, applyClipping);
         // PdfPig returns the raw values; mapping them to PdfMetadata happens outside PdfPigCall.
         var info = PdfPigCall.Read(() => (document.Version, document.NumberOfPages, document.Information));
         var metadata = MetadataReader.Read(info.Version.ToString("0.0", CultureInfo.InvariantCulture), info.NumberOfPages, info.Information);
@@ -152,6 +153,15 @@ public sealed class PdfProofDocument
         var detected = options.Profile is null;
         var diagnostics = new DiagnosticsCollector(options.Logger);
         diagnostics.Add(PdfDiagnosticCodes.Profile, null, $"{profile.Name} ({reason})");
+        if (PdfPigCall.Read(() => document.IsEncrypted))
+        {
+            diagnostics.Add(
+                PdfDiagnosticCodes.Encrypted,
+                null,
+                options.Password is null
+                    ? "The PDF is encrypted; it opened without a password."
+                    : "The PDF is encrypted; it was opened with the password from the options.");
+        }
 
         var raw = ReadStructure(document, diagnostics);
         var tagged = raw.Elements.Count > 0;
@@ -194,6 +204,27 @@ public sealed class PdfProofDocument
         }
 
         return new PdfProofDocument(metadata, layout, structure, diagnostics.ToDiagnostics(profile, detected));
+    }
+
+    // PdfPig throws PdfDocumentEncryptedException from Open when the password is missing or wrong (probed with
+    // RC4-128, AES-128 and AES-256): that gets its own message instead of "could not be read as a PDF".
+    private static PdfDocument OpenPdf(byte[] pdf, string? password, bool applyClipping)
+    {
+        var parsing = new ParsingOptions { ClipPaths = applyClipping };
+        if (password is not null)
+        {
+            parsing.Password = password;
+        }
+
+        try
+        {
+            return PdfPigCall.Read(() => PdfDocument.Open(pdf, parsing));
+        }
+        catch (PdfProofException ex) when (ex.InnerException is PdfDocumentEncryptedException encrypted)
+        {
+            Throw.EncryptedPdf(encrypted, password is not null);
+            throw; // unreachable: EncryptedPdf always throws
+        }
     }
 
     // How a profile given in the options relates to the presets, for the profile diagnostic.

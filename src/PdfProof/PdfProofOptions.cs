@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace PdfProof;
@@ -17,6 +18,22 @@ public sealed record PdfProofOptions
     /// </summary>
     public PdfProfile? Profile { get; init; }
 
+    /// <summary>
+    /// The user or owner password of an encrypted PDF; <see langword="null"/> (the default) for none. A password for
+    /// a PDF that isn't encrypted is ignored. The password is never written to diagnostics, logs or
+    /// <see cref="ToString"/>.
+    /// </summary>
+    public string? Password { get; init; }
+
     /// <summary>Receives every diagnostic entry as it is recorded; <see langword="null"/> for no logging.</summary>
     public ILogger? Logger { get; init; }
+
+    // Shapes the record's ToString: the password is masked, so options can be logged safely.
+    private bool PrintMembers(StringBuilder builder)
+    {
+        builder.Append("Profile = ").Append(Profile?.Name ?? "(detect)");
+        builder.Append(", Password = ").Append(Password is null ? "(none)" : "***");
+        builder.Append(", Logger = ").Append(Logger is null ? "(none)" : Logger.GetType().Name);
+        return true;
+    }
 }
