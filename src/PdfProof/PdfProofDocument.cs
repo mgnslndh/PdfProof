@@ -22,7 +22,7 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The bytes can't be read as a PDF.</exception>
     public static PdfProofDocument Load(byte[] pdf)
     {
-        ArgumentNullException.ThrowIfNull(pdf);
+        Throw.IfNull(pdf);
         return Open(pdf);
     }
 
@@ -35,7 +35,7 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The content can't be read as a PDF.</exception>
     public static PdfProofDocument Load(Stream pdf)
     {
-        ArgumentNullException.ThrowIfNull(pdf);
+        Throw.IfNull(pdf);
 
         // Copying makes the behavior the same for every kind of stream: read from here to the end, never seek,
         // never dispose the caller's stream.
@@ -52,20 +52,20 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The file can't be read as a PDF.</exception>
     public static PdfProofDocument Load(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
+        Throw.IfNull(path);
         if (string.IsNullOrWhiteSpace(path))
         {
-            throw new ArgumentException("The path is empty.", nameof(path));
+            Throw.ArgumentException(nameof(path), "The path is empty.");
         }
 
         if (Directory.Exists(path))
         {
-            throw new ArgumentException($"The path is a directory, not a PDF file. Path: {path}", nameof(path));
+            Throw.ArgumentException(nameof(path), $"The path is a directory, not a PDF file. Path: {path}");
         }
 
         if (!File.Exists(path))
         {
-            throw new FileNotFoundException("The PDF file was not found.", path);
+            Throw.FileNotFoundException("The PDF file was not found.", path);
         }
 
         return Open(File.ReadAllBytes(path));
@@ -73,14 +73,8 @@ public sealed class PdfProofDocument
 
     private static PdfProofDocument Open(byte[] pdf)
     {
-        try
-        {
-            using var document = PdfDocument.Open(pdf);
-            return new PdfProofDocument(MetadataReader.Read(document));
-        }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
-        {
-            throw new PdfProofException($"The input could not be read as a PDF: {ex.Message}", ex);
-        }
+        using var document = PdfPigCall.Read(() => PdfDocument.Open(pdf));
+        var metadata = PdfPigCall.Read(() => MetadataReader.Read(document));
+        return new PdfProofDocument(metadata);
     }
 }

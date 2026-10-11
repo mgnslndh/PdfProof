@@ -36,6 +36,7 @@ On Windows, tests run on net48 and net10.0; elsewhere on net10.0 only.
 - **No real company or customer names anywhere**: code, tests, samples, docs, commit messages. Use neutral sample
   data ("Consulting, senior", `example.com`).
 - **TDD:** write the failing test first, see it fail, then implement.
+- **Throwing:** guard clauses and throws use `Throw` (`src/Shared/Throw/`, namespace `PdfProof.Shared`, implicit in every `src/` project): `Throw.IfNull(x)`, `Throw.ArgumentException(…)`. BCL helpers go in `Throw.cs` (kept close to its dotnet/extensions upstream so it can be shared), PdfProof helpers in `Throw.PdfProof.cs`.
 - **Public API:** every public API change is recorded in that project's `PublicAPI.Unshipped.txt`; the build fails
   otherwise. Every public member has XML docs.
 - **net48 is a real target.** Libraries build for netstandard2.0; use Polyfill for newer APIs and run the tests on

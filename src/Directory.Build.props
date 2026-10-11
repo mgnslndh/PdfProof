@@ -1,0 +1,9 @@
+<Project>
+  <!-- The repository's settings, then what every library under src/ shares. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <ItemGroup>
+    <!-- Shared source (internal helpers such as Throw), compiled into each library. -->
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/**/*.cs" LinkBase="Shared" />
+    <Using Include="PdfProof.Shared" />
+  </ItemGroup>
+</Project>
