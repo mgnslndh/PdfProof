@@ -144,7 +144,8 @@ namespaces, so they can all be imported together.
 PdfProofDocument
  ├─ Metadata     PdfMetadata       version, info dictionary (standard + custom), dates as DateTimeOffset?, page count
  ├─ Layout       LayoutModel       Pages → LayoutPage → LayoutBlock → LayoutLine → LayoutSpan;
- │                                 LayoutLink, LayoutImage, LayoutAnnotation, bookmarks, form fields, fonts (embedded?)
+ │                                 LayoutLink, LayoutImage, LayoutAnnotation, LayoutFormField (one per widget, on its
+ │                                 page), bookmarks, fonts (embedded?)
  ├─ Structure    StructureModel    IsTagged, Root: StructureNode → Children (role after RoleMap, text, alt, actual
  │                                 text, lang, link targets, page)
  ├─ Semantics    SemanticModel     Source (Declared|Inferred), Blocks, Sections, Artifacts; navigation helpers
@@ -163,8 +164,8 @@ configurable precision (default 0.1 pt), with `-0` normalized.
 
 ```
 PdfProofDocument.Load(source, options?)        source: byte[] | Stream | file path | PdfPig PdfDocument
-  1 Open         PdfPig; password; ClipPaths when clipping is on
-  2 Options      none given → profile auto-detected from /Producer; given → used exactly as given
+  1 Open         PdfPig; password from the options; ClipPaths when clipping is on
+  2 Profile      the options' profile, or none given → detected from /Producer, then /Creator
   3 Layout       per page: letters → clip filter → normalization → words → ILayoutStrategy → blocks/lines/spans;
                  links, images (dropped when entirely off-page), annotations; rounding. Letters are discarded per page.
   4 Structure    structure tree reader → StructureModel
@@ -186,21 +187,36 @@ PdfProofDocument.Load(source, options?)        source: byte[] | Stream | file pa
 ### 5.3 Options and profiles
 
 ```csharp
+// How to read a PDF from a given producer: a named, complete set of settings.
+public sealed record PdfProfile
+{
+    public static PdfProfile Default { get; }         // also SelectPdf, QuestPdf, Typst, Chromium
+    public string Name { get; init; }
+    public LayoutOptions Layout { get; init; }        // Strategy, ApplyClipping, Normalization, Precision, ColumnGapFactor, …
+    public SemanticOptions Semantics { get; init; }   // Source (Auto|Structure|Layout), one options record per pass
+}
+
+// How to load this file.
 public sealed record PdfProofOptions
 {
+    public PdfProfile? Profile { get; init; }         // null: detected from /Producer, then /Creator
     public string? Password { get; init; }
-    public LayoutOptions Layout { get; init; }       // Strategy, ApplyClipping, Normalization, Precision, ColumnGapFactor, …
-    public SemanticOptions Semantics { get; init; }  // Source (Auto|Structure|Layout), one options record per pass
     public ILogger? Logger { get; init; }
 
-    public static PdfProofOptions Default { get; }
-    public static PdfProofOptions ForProfile(PdfProfile profile);
+    public static PdfProofOptions Default { get; }    // everything null: detect, no password, no logging
 }
 ```
 
-- **Profiles are presets, not merge layers.** `ForProfile(PdfProfile.SelectPdf)` returns a complete options record,
-  adjusted with `with { … }`. Only `Load` without options auto-detects. The profile used is recorded in `Diagnostics`.
-- **v1 profiles:** `Default`, `SelectPdf`, `QuestPdf`, `Typst`, `Chromium`.
+- **A profile is the settings, options choose one.** The settings come entirely from one profile: the detected one or
+  the one given. They are never merged. A preset is adjusted with `with { … }`
+  (`PdfProfile.SelectPdf with { Layout = … }`), and `Name` keeps saying which preset it started from.
+- **Per-file inputs are not part of a profile.** The password belongs to a PDF, not to a producer, so it is a load
+  option, as in PdfPig's `ParsingOptions` and iText's `ReaderProperties`. It works with detection:
+  `Load(pdf, new() { Password = "…" })`.
+- `Load(pdf)` is `Load(pdf, PdfProofOptions.Default)`. `Diagnostics` records the profile and how it was chosen:
+  detected (naming the entry that matched), from options, or from options and adjusted.
+- **v1 profiles:** `Default`, `SelectPdf`, `QuestPdf`, `Typst`, `Chromium`. QuestPDF writes no `/Producer` or
+  `/Creator`, so `QuestPdf` is never detected and must be given.
 - Scrubbing is **not** a load option. It belongs to export (§7), so one loaded document can be asserted on unscrubbed
   and snapshotted scrubbed.
 
@@ -552,7 +568,9 @@ tools/PdfProof.FixtureGenerator/Documents/InvoiceDocument.cs   QuestPDF and Migr
 ```
 
 - **Comparing against the oracle:** the block list must match in order. Properties missing from the oracle are
-  ignored (omit `level` to accept any heading level). Text is compared after normalization.
+  ignored (omit `level` to accept any heading level). Text is compared after normalization. Until the semantic
+  model exists, the corpus test compares what the layout and structure models can show: title and page count, block
+  text in order, links, structure roles of tagged producers, and the footer artifact.
 - **The corpus test is a matrix** of document × producer: pass, known deviation, or fail. A known deviation that
   starts passing fails the test until its entry is removed.
 - **Fixture sources use fixed dates and IDs.** The bytes still differ (`/ID`, CreationDate), but the comparison uses
@@ -588,6 +606,8 @@ tools/PdfProof.FixtureGenerator/Documents/InvoiceDocument.cs   QuestPDF and Migr
 - `corpus/external/manifest.json` entries: `id`, `url`, `sha256`, `license`, `source`, `purpose`. The build downloads
   them into a cache and fails on a hash mismatch. Approved exports go in `corpus/external/approved/`.
 - **v1 set:** IRS W-9 and W-4 (US federal works, public domain), one Project Gutenberg PDF, one CC-BY arXiv paper.
+  IRS forms are pinned by their `irs-prior` URLs (`https://www.irs.gov/pub/irs-prior/fw9--2024.pdf`): the
+  `irs-pdf` URLs always serve the latest revision, so their hash changes when a form is revised.
   veraPDF corpus and PDF/UA Reference Suite files are added only after their licenses are confirmed.
 - Nothing is added without a license recorded in the manifest. Govdocs1 is excluded (known malware).
 - `docs/corpus.md` is generated from the manifest and approved outputs: the "what to expect" page.
@@ -611,7 +631,7 @@ build/
   Build/
     Build.csproj                    <Project Sdk="Cake.Sdk">, RunWorkingDirectory = repo root
     Program.cs                      Setup → BuildParameters; Register*Tasks(); RunTarget
-    BuildParameters.cs              --configuration, --require-fixtures, --producers=…, --skip-fetch
+    BuildParameters.cs              --configuration, --require-fixtures, --producers=…, --skip-generate, --skip-fetch
     Tasks/FixtureTasks.cs CorpusTasks.cs BuildTasks.cs TestTasks.cs PackTasks.cs DefaultTasks.cs
   Build.Cake.Extensions/            PdfProof-agnostic helpers: pinned downloads (url + sha256), producer detection
   Build.Cake.Extensions.Tests/
@@ -706,7 +726,7 @@ skeleton (Cake build, CI, packaging), the fixture generator with the `invoice` d
 | Id | Question | Needed by |
 |---|---|---|
 | OQ-1 | Does xUnit v3 treat a foreign `IAssertionException` as an assertion failure? (§8.7) | First implementation task |
-| OQ-2 | Can Typstium be consumed as a package by the fixture generator, or do we call the Typst CLI? | `0.1.0-alpha` |
+| OQ-2 | ~~Can Typstium be consumed as a package by the fixture generator, or do we call the Typst CLI?~~ Answered in Plan 4: Typstium is not on a package feed, so the build downloads the Typst CLI pinned by version and SHA-256. | `0.1.0-alpha` |
 | OQ-3 | Licenses of the veraPDF corpus and the PDF/UA Reference Suite files | Before adding them |
 | OQ-4 | Default layout strategy per profile: is `Rows` right for SelectPdf documents with multi-column sections? | Private evaluation of `0.1.0-alpha` |
 | OQ-5 | Verify integration package after v1: Verify version range and license stance | After v1 |
