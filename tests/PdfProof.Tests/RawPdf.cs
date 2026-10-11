@@ -6,7 +6,9 @@ namespace PdfProof.Tests;
 // Writes small PDFs from raw PDF syntax, for tests that need exact control: positions, clipping, rotation,
 // annotations, outlines, info entries and (from Plan 3) structure trees. Object 1 is the catalog, 2 the page tree.
 // Every page is A4 (595 x 842 pt) and gets the fonts /F1 Helvetica, /F2 Helvetica-Bold, /F3 Helvetica-Oblique
-// (WinAnsiEncoding, so U+00AD soft hyphen and U+00A0 no-break space can be written) and a 2x2 gray image /Im1.
+// (WinAnsiEncoding) and /F4 Helvetica whose encoding maps byte 0xAD to /softhyphen (U+00AD) and 0xA0 to /nbspace
+// (U+00A0), like producers that extract those characters as such (in plain WinAnsi they extract as '-' and ' '),
+// plus a 2x2 gray image /Im1.
 // Text is written as ISO-8859-1. Numbers are formatted with the invariant culture.
 internal sealed class RawPdf
 {
@@ -25,10 +27,11 @@ internal sealed class RawPdf
         var regular = Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
         var bold = Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
         var oblique = Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>");
+        var special = Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding /Differences [160 /nbspace 173 /softhyphen] >> >>");
         var image = AddStream(
             "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8",
             "\u0000\u00FF\u00FF\u0000");
-        _resources = Add($"<< /Font << /F1 {regular} 0 R /F2 {bold} 0 R /F3 {oblique} 0 R >> /XObject << /Im1 {image} 0 R >> >>");
+        _resources = Add($"<< /Font << /F1 {regular} 0 R /F2 {bold} 0 R /F3 {oblique} 0 R /F4 {special} 0 R >> /XObject << /Im1 {image} 0 R >> >>");
     }
 
     /// Extra entries for the catalog, e.g. "/Outlines 9 0 R".

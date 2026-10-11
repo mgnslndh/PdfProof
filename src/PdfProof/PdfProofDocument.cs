@@ -1,3 +1,4 @@
+using PdfProof.Layout;
 using UglyToad.PdfPig;
 
 namespace PdfProof;
@@ -8,14 +9,18 @@ namespace PdfProof;
 /// </summary>
 public sealed class PdfProofDocument
 {
-    private PdfProofDocument(PdfMetadata metadata, PdfDiagnostics diagnostics)
+    private PdfProofDocument(PdfMetadata metadata, LayoutModel layout, PdfDiagnostics diagnostics)
     {
         Metadata = metadata;
+        Layout = layout;
         Diagnostics = diagnostics;
     }
 
     /// <summary>The PDF version, page count and info dictionary.</summary>
     public PdfMetadata Metadata { get; }
+
+    /// <summary>The geometry: pages, with text grouped into blocks, lines and spans.</summary>
+    public LayoutModel Layout { get; }
 
     /// <summary>The profile used and every decision and warning recorded while loading.</summary>
     public PdfDiagnostics Diagnostics { get; }
@@ -139,6 +144,7 @@ public sealed class PdfProofDocument
             null,
             detected ? $"{effective.Profile} (detected from producer \"{metadata.Producer}\")" : $"{effective.Profile} (from options)");
 
-        return new PdfProofDocument(metadata, diagnostics.ToDiagnostics(effective.Profile, detected));
+        var layout = LayoutBuilder.Build(document, effective.Layout, diagnostics);
+        return new PdfProofDocument(metadata, layout, diagnostics.ToDiagnostics(effective.Profile, detected));
     }
 }

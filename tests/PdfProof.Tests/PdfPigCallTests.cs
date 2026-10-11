@@ -38,7 +38,7 @@ public sealed class PdfPigCallTests
         Assert.Throws<OutOfMemoryException>(() => PdfPigCall.Read<int>(() => throw new OutOfMemoryException()));
     }
 
-    [Fact(Skip = "Enabled in Task 5, when page content is read")]
+    [Fact]
     public void A_corrupt_page_content_stream_names_the_page()
     {
         // Page 2's /Contents points at an object that is not a stream: the parser fails when the page is read.
