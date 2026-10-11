@@ -11,8 +11,11 @@ internal sealed class DiagnosticsCollector(ILogger? logger)
     {
         var entry = new PdfDiagnostic(code, page, message);
         _entries.Add(entry);
-        logger?.Log(code == PdfDiagnosticCodes.NoTextLayer ? LogLevel.Warning : LogLevel.Debug, "{Diagnostic}", entry);
+        logger?.Log(IsWarning(code) ? LogLevel.Warning : LogLevel.Debug, "{Diagnostic}", entry);
     }
+
+    private static bool IsWarning(string code) =>
+        code is PdfDiagnosticCodes.NoTextLayer or PdfDiagnosticCodes.BookmarksUnreadable;
 
     public PdfDiagnostics ToDiagnostics(PdfProfile profile, bool profileDetected) =>
         new(profile, profileDetected, _entries.ToArray());

@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
-using UglyToad.PdfPig;
+using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Tokens;
 
 namespace PdfProof;
@@ -12,9 +11,8 @@ internal static class MetadataReader
         "Title", "Author", "Subject", "Keywords", "Creator", "Producer", "CreationDate", "ModDate",
     };
 
-    public static PdfMetadata Read(PdfDocument document)
+    public static PdfMetadata Read(string pdfVersion, int pageCount, DocumentInformation info)
     {
-        var info = document.Information;
         var custom = new SortedDictionary<string, string>(StringComparer.Ordinal);
         if (info.DocumentInformationDictionary is { } dictionary)
         {
@@ -28,8 +26,8 @@ internal static class MetadataReader
         }
 
         return new PdfMetadata(
-            document.Version.ToString("0.0", CultureInfo.InvariantCulture),
-            document.NumberOfPages,
+            pdfVersion,
+            pageCount,
             info.Title,
             info.Author,
             info.Subject,

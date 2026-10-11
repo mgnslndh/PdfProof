@@ -23,6 +23,8 @@ internal sealed class ReadingOrderLayoutStrategy : ILayoutStrategy
             byWord[word.Source] = word;
         }
 
+        // Not wrapped in PdfPigCall on purpose: these algorithms run on words that were already read, so a failure
+        // here is a library problem, not an unreadable PDF, and must not be reported as one.
         var blocks = DocstrumBoundingBoxes.Instance.GetBlocks(words.Select(word => word.Source));
         return UnsupervisedReadingOrderDetector.Instance.Get(blocks)
             .Select(block => new LayoutWordBlock(block.TextLines

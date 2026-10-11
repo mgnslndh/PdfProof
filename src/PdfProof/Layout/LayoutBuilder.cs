@@ -24,10 +24,7 @@ internal static class LayoutBuilder
             pages.Add(BuildPage(page, pageNumber, options, diagnostics));
         }
 
-        var bookmarks = PdfPigCall.Read(() => document.TryGetBookmarks(out var outline)
-            ? outline.Roots.Select(Bookmark).ToList()
-            : new List<LayoutBookmark>());
-        return new LayoutModel(pages, bookmarks);
+        return new LayoutModel(pages, Bookmarks(document, diagnostics));
     }
 
     private static LayoutPage BuildPage(Page page, int number, LayoutOptions options, DiagnosticsCollector diagnostics)
@@ -68,11 +65,10 @@ internal static class LayoutBuilder
 
         // PdfPig clips letters but not images: at least drop images drawn entirely outside the visible page.
         var visible = page.CropBox.Bounds;
-        var images = PdfPigCall.Read(
-                () => page.GetImages().Select(image => (Bounds: image.BoundingBox, image.WidthInSamples, image.HeightInSamples, Data: image.RawMemory.ToArray())).ToList(),
-                number)
-            .Where(image => !options.ApplyClipping || Geometry.Intersects(image.Bounds, visible))
-            .Select(image => new LayoutImage(Geometry.Round(Geometry.Bounds(image.Bounds), options.Decimals), image.WidthInSamples, image.HeightInSamples, Geometry.Sha256Prefix(image.Data)))
+        // Filtered before hashing, so the data of images that are dropped is never copied or hashed.
+        var images = PdfPigCall.Read(() => page.GetImages().ToList(), number)
+            .Where(image => !options.ApplyClipping || Geometry.Intersects(image.BoundingBox, visible))
+            .Select(image => new LayoutImage(Geometry.Round(Geometry.Bounds(image.BoundingBox), options.Decimals), image.WidthInSamples, image.HeightInSamples, Geometry.Sha256Prefix(image.RawMemory)))
             .OrderByDescending(image => image.Box.Top).ThenBy(image => image.Box.Left)
             .ToList();
 
@@ -157,6 +153,27 @@ internal static class LayoutBuilder
             .Where(lines => lines.Count > 0)
             .Select(lines => LineFactory.Block(lines, LayoutOrientation.Horizontal))
             .ToList();
+
+    // Bookmarks are secondary to page content: an outline the parser rejects is reported and left out, and the
+    // document still loads. PdfPig returns the parsed nodes; mapping them to the model happens outside PdfPigCall.
+    private static IReadOnlyList<LayoutBookmark> Bookmarks(PdfDocument document, DiagnosticsCollector diagnostics)
+    {
+        IReadOnlyList<BookmarkNode> roots;
+        try
+        {
+            roots = PdfPigCall.Read(() => document.TryGetBookmarks(out var outline) ? outline.Roots : (IReadOnlyList<BookmarkNode>)[]);
+        }
+        catch (PdfProofException ex)
+        {
+            diagnostics.Add(
+                PdfDiagnosticCodes.BookmarksUnreadable,
+                null,
+                "The bookmarks could not be read and are left out: " + (ex.InnerException ?? ex).Message);
+            return [];
+        }
+
+        return roots.Select(Bookmark).ToList();
+    }
 
     private static LayoutBookmark Bookmark(BookmarkNode node) => new(
         node.Title,

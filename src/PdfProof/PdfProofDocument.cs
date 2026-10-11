@@ -1,3 +1,4 @@
+using System.Globalization;
 using PdfProof.Layout;
 using UglyToad.PdfPig;
 
@@ -137,7 +138,9 @@ public sealed class PdfProofDocument
         // uses the same layout options today; when they differ, detection must happen before this point.
         var applyClipping = (options?.Layout ?? LayoutOptions.Default).ApplyClipping;
         using var document = PdfPigCall.Read(() => PdfDocument.Open(pdf, new ParsingOptions { ClipPaths = applyClipping }));
-        var metadata = PdfPigCall.Read(() => MetadataReader.Read(document));
+        // PdfPig returns the raw values; mapping them to PdfMetadata happens outside PdfPigCall.
+        var raw = PdfPigCall.Read(() => (document.Version, document.NumberOfPages, document.Information));
+        var metadata = MetadataReader.Read(raw.Version.ToString("0.0", CultureInfo.InvariantCulture), raw.NumberOfPages, raw.Information);
 
         var detected = options is null;
         var effective = options ?? PdfProofOptions.ForProfile(ProducerProfiles.Detect(metadata.Producer, metadata.Creator));

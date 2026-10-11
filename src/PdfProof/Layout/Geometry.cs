@@ -56,10 +56,17 @@ internal static class Geometry
         point.X >= rectangle.Left && point.X <= rectangle.Right && point.Y >= rectangle.Bottom && point.Y <= rectangle.Top;
 
     // The first 16 lowercase hex digits of the SHA-256: short, and stable for the same image data.
-    public static string Sha256Prefix(byte[] bytes)
+    public static string Sha256Prefix(ReadOnlyMemory<byte> data)
     {
-        using var sha = SHA256.Create();
-        var hash = sha.ComputeHash(bytes);
+#if NET5_0_OR_GREATER
+        var hash = SHA256.HashData(data.Span); // hashes in place, no copy
+#else
+        byte[] hash;
+        using (var sha = SHA256.Create())
+        {
+            hash = sha.ComputeHash(data.ToArray());
+        }
+#endif
         var hex = new StringBuilder(16);
         for (var i = 0; i < 8; i++)
         {

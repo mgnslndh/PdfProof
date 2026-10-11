@@ -27,6 +27,28 @@ public sealed class BookmarkAndTextLayerTests
     }
 
     [Fact]
+    public void A_corrupt_outline_leaves_the_pages_readable_and_reports_BookmarksUnreadable()
+    {
+        // Bookmarks are secondary to page content: a broken outline must not make the whole document unreadable.
+        var logger = new ListLogger();
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Text(50, 750, "Invoice"));
+        // A title must be a string; PdfPig rejects a number (other breakage, such as a missing /First, it tolerates).
+        var item = pdf.Reserve();
+        var outlines = pdf.Add($"<< /Type /Outlines /First {item} 0 R /Last {item} 0 R /Count 1 >>");
+        pdf.Set(item, $"<< /Title 5 /Parent {outlines} 0 R /Dest [{page} 0 R /Fit] >>");
+        pdf.CatalogEntries = $"/Outlines {outlines} 0 R";
+
+        var doc = PdfProofDocument.Load(pdf.Build(), PdfProofOptions.Default with { Logger = logger });
+
+        Assert.Equal("Invoice", doc.Layout.Pages[0].Text);
+        Assert.Empty(doc.Layout.Bookmarks);
+        var entry = Assert.Single(doc.Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.BookmarksUnreadable);
+        Assert.StartsWith("The bookmarks could not be read and are left out: ", entry.Message);
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Warning && e.Message.StartsWith("BookmarksUnreadable", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_pdf_without_bookmarks_has_none()
     {
         Assert.Empty(PdfProofDocument.Load(RowsLayoutTests.Pdf(RawPdf.Text(50, 750, "Hello"))).Layout.Bookmarks);

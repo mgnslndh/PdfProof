@@ -63,7 +63,9 @@ public sealed record LayoutOptions
     public bool NormalizeText { get; init; } = true;
 
     /// <summary>
-    /// Extra text replacements applied to every word after normalization, in ordinal key order. Default none.
+    /// Extra text replacements applied to every word (and to link text, which is built from words) after
+    /// normalization, in ordinal key order. Replacements apply within single words, so a key must not be empty or
+    /// contain whitespace. The dictionary is copied when set. Default none.
     /// </summary>
     public IReadOnlyDictionary<string, string> TextReplacements
     {
@@ -97,6 +99,11 @@ public sealed record LayoutOptions
             if (string.IsNullOrEmpty(entry.Key))
             {
                 Throw.ArgumentException(nameof(TextReplacements), "A replacement key must not be empty.");
+            }
+
+            if (entry.Key.Any(char.IsWhiteSpace))
+            {
+                Throw.ArgumentException(nameof(TextReplacements), "Replacements apply to single words; a key must not contain whitespace.");
             }
 
             copy[entry.Key] = entry.Value ?? "";

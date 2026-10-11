@@ -179,3 +179,4 @@ PdfProof.Layout.LayoutBookmark.PageNumber.get -> int?
 PdfProof.Layout.LayoutBookmark.Title.get -> string!
 PdfProof.Layout.LayoutBookmark.Uri.get -> string?
 PdfProof.Layout.LayoutModel.Bookmarks.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutBookmark!>!
+const PdfProof.PdfDiagnosticCodes.BookmarksUnreadable = "BookmarksUnreadable" -> string!

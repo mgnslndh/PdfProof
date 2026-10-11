@@ -82,6 +82,18 @@ public sealed class ImmutabilityAndValidationTests
         Assert.Equal("TextReplacements", ex.ParamName);
     }
 
+    [Theory]
+    [InlineData("two words")]
+    [InlineData("tab\tkey")]
+    public void A_replacement_key_with_whitespace_is_rejected_because_replacements_apply_to_single_words(string key)
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+            LayoutOptions.Default with { TextReplacements = new Dictionary<string, string> { [key] = "x" } });
+
+        Assert.Equal("TextReplacements", ex.ParamName);
+        Assert.StartsWith("Replacements apply to single words; a key must not contain whitespace.", ex.Message);
+    }
+
     [Fact]
     public void Null_layout_options_are_rejected()
     {

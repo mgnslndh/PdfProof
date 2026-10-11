@@ -11,4 +11,7 @@ public static class PdfDiagnosticCodes
 
     /// <summary>No page has extractable text; the PDF is probably a scan. Logged as a warning.</summary>
     public const string NoTextLayer = "NoTextLayer";
+
+    /// <summary>The bookmarks (outline) could not be read and are left out; the pages are unaffected. Logged as a warning.</summary>
+    public const string BookmarksUnreadable = "BookmarksUnreadable";
 }
