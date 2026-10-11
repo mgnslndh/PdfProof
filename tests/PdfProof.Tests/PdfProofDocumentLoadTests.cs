@@ -18,17 +18,18 @@ public sealed class PdfProofDocumentLoadTests
     [Fact]
     public void Pdf_version_uses_a_dot_in_every_culture()
     {
-        var previous = CultureInfo.CurrentCulture;
-        CultureInfo.CurrentCulture = new CultureInfo("sv-SE");
+        var previous = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
+        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo("sv-SE");
         try
         {
             var doc = PdfProofDocument.Load(TestPdfs.Create());
 
-            Assert.Matches(@"^\d\.\d$", doc.Metadata.PdfVersion);
+            // PdfPig's writer produces PDF 1.7; sv-SE would format the number as "1,7".
+            Assert.Equal("1.7", doc.Metadata.PdfVersion);
         }
         finally
         {
-            CultureInfo.CurrentCulture = previous;
+            (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = previous;
         }
     }
 
@@ -97,7 +98,9 @@ public sealed class PdfProofDocumentLoadTests
     [Fact]
     public void Empty_input_throws_PdfProofException()
     {
-        Assert.Throws<PdfProofException>(() => PdfProofDocument.Load(Array.Empty<byte>()));
+        var ex = Assert.Throws<PdfProofException>(() => PdfProofDocument.Load(Array.Empty<byte>()));
+
+        Assert.StartsWith("The input could not be read as a PDF", ex.Message);
     }
 
     [Fact]
