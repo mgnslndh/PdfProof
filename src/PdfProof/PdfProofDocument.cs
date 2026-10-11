@@ -8,27 +8,43 @@ namespace PdfProof;
 /// </summary>
 public sealed class PdfProofDocument
 {
-    private PdfProofDocument(PdfMetadata metadata)
+    private PdfProofDocument(PdfMetadata metadata, PdfDiagnostics diagnostics)
     {
         Metadata = metadata;
+        Diagnostics = diagnostics;
     }
 
     /// <summary>The PDF version, page count and info dictionary.</summary>
     public PdfMetadata Metadata { get; }
 
-    /// <summary>Loads a PDF from its bytes.</summary>
+    /// <summary>The profile used and every decision and warning recorded while loading.</summary>
+    public PdfDiagnostics Diagnostics { get; }
+
+    /// <summary>Loads a PDF from its bytes, with the profile detected from the producer.</summary>
     /// <param name="pdf">The complete PDF file.</param>
     /// <exception cref="ArgumentNullException"><paramref name="pdf"/> is <see langword="null"/>.</exception>
     /// <exception cref="PdfProofException">The bytes can't be read as a PDF.</exception>
     public static PdfProofDocument Load(byte[] pdf)
     {
         Throw.IfNull(pdf);
-        return Open(pdf);
+        return Open(pdf, null);
+    }
+
+    /// <summary>Loads a PDF from its bytes with the given options.</summary>
+    /// <param name="pdf">The complete PDF file.</param>
+    /// <param name="options">The options to use, exactly as given.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="pdf"/> or <paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="PdfProofException">The bytes can't be read as a PDF.</exception>
+    public static PdfProofDocument Load(byte[] pdf, PdfProofOptions options)
+    {
+        Throw.IfNull(pdf);
+        Throw.IfNull(options);
+        return Open(pdf, options);
     }
 
     /// <summary>
-    /// Loads a PDF from a stream, reading from its current position to the end. The stream may be non-seekable,
-    /// and it is left open.
+    /// Loads a PDF from a stream, reading from its current position to the end, with the profile detected from the
+    /// producer. The stream may be non-seekable, and it is left open.
     /// </summary>
     /// <param name="pdf">A stream positioned at the start of the PDF.</param>
     /// <exception cref="ArgumentNullException"><paramref name="pdf"/> is <see langword="null"/>.</exception>
@@ -36,15 +52,25 @@ public sealed class PdfProofDocument
     public static PdfProofDocument Load(Stream pdf)
     {
         Throw.IfNull(pdf);
-
-        // Copying makes the behavior the same for every kind of stream: read from here to the end, never seek,
-        // never dispose the caller's stream.
-        using var buffer = new MemoryStream();
-        pdf.CopyTo(buffer);
-        return Open(buffer.ToArray());
+        return Open(ReadToEnd(pdf), null);
     }
 
-    /// <summary>Loads a PDF file.</summary>
+    /// <summary>
+    /// Loads a PDF from a stream with the given options, reading from its current position to the end. The stream
+    /// may be non-seekable, and it is left open.
+    /// </summary>
+    /// <param name="pdf">A stream positioned at the start of the PDF.</param>
+    /// <param name="options">The options to use, exactly as given.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="pdf"/> or <paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="PdfProofException">The content can't be read as a PDF.</exception>
+    public static PdfProofDocument Load(Stream pdf, PdfProofOptions options)
+    {
+        Throw.IfNull(pdf);
+        Throw.IfNull(options);
+        return Open(ReadToEnd(pdf), options);
+    }
+
+    /// <summary>Loads a PDF file, with the profile detected from the producer.</summary>
     /// <param name="path">The path to the PDF file.</param>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="path"/> is empty or whitespace, or names a directory.</exception>
@@ -53,6 +79,34 @@ public sealed class PdfProofDocument
     public static PdfProofDocument Load(string path)
     {
         Throw.IfNull(path);
+        return Open(ReadFile(path), null);
+    }
+
+    /// <summary>Loads a PDF file with the given options.</summary>
+    /// <param name="path">The path to the PDF file.</param>
+    /// <param name="options">The options to use, exactly as given.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="path"/> or <paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is empty or whitespace, or names a directory.</exception>
+    /// <exception cref="FileNotFoundException">The file doesn't exist.</exception>
+    /// <exception cref="PdfProofException">The file can't be read as a PDF.</exception>
+    public static PdfProofDocument Load(string path, PdfProofOptions options)
+    {
+        Throw.IfNull(path);
+        Throw.IfNull(options);
+        return Open(ReadFile(path), options);
+    }
+
+    // Copying makes the behavior the same for every kind of stream: read from here to the end, never seek, never
+    // dispose the caller's stream.
+    private static byte[] ReadToEnd(Stream pdf)
+    {
+        using var buffer = new MemoryStream();
+        pdf.CopyTo(buffer);
+        return buffer.ToArray();
+    }
+
+    private static byte[] ReadFile(string path)
+    {
         if (string.IsNullOrWhiteSpace(path))
         {
             Throw.ArgumentException(nameof(path), "The path is empty.");
@@ -68,13 +122,23 @@ public sealed class PdfProofDocument
             Throw.FileNotFoundException("The PDF file was not found.", path);
         }
 
-        return Open(File.ReadAllBytes(path));
+        return File.ReadAllBytes(path);
     }
 
-    private static PdfProofDocument Open(byte[] pdf)
+    // options is null when the caller gave none: the profile is then detected from the producer.
+    private static PdfProofDocument Open(byte[] pdf, PdfProofOptions? options)
     {
         using var document = PdfPigCall.Read(() => PdfDocument.Open(pdf));
         var metadata = PdfPigCall.Read(() => MetadataReader.Read(document));
-        return new PdfProofDocument(metadata);
+
+        var detected = options is null;
+        var effective = options ?? PdfProofOptions.ForProfile(ProducerProfiles.Detect(metadata.Producer, metadata.Creator));
+        var diagnostics = new DiagnosticsCollector(effective.Logger);
+        diagnostics.Add(
+            PdfDiagnosticCodes.Profile,
+            null,
+            detected ? $"{effective.Profile} (detected from producer \"{metadata.Producer}\")" : $"{effective.Profile} (from options)");
+
+        return new PdfProofDocument(metadata, diagnostics.ToDiagnostics(effective.Profile, detected));
     }
 }
