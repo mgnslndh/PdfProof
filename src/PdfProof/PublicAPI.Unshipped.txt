@@ -30,25 +30,15 @@ PdfProof.PdfDiagnostic.Page.get -> int?
 PdfProof.PdfDiagnosticCodes
 PdfProof.PdfDiagnostics
 PdfProof.PdfDiagnostics.Entries.get -> System.Collections.Generic.IReadOnlyList<PdfProof.PdfDiagnostic!>!
-PdfProof.PdfDiagnostics.Profile.get -> PdfProof.PdfProfile
 PdfProof.PdfDiagnostics.ProfileDetected.get -> bool
 PdfProof.PdfProfile
-PdfProof.PdfProfile.Chromium = 4 -> PdfProof.PdfProfile
-PdfProof.PdfProfile.Default = 0 -> PdfProof.PdfProfile
-PdfProof.PdfProfile.QuestPdf = 2 -> PdfProof.PdfProfile
-PdfProof.PdfProfile.SelectPdf = 1 -> PdfProof.PdfProfile
-PdfProof.PdfProfile.Typst = 3 -> PdfProof.PdfProfile
 PdfProof.PdfProofDocument.Diagnostics.get -> PdfProof.PdfDiagnostics!
 PdfProof.PdfProofOptions
 PdfProof.PdfProofOptions.<Clone>$() -> PdfProof.PdfProofOptions!
 PdfProof.PdfProofOptions.Equals(PdfProof.PdfProofOptions? other) -> bool
-PdfProof.PdfProofOptions.Layout.get -> PdfProof.Layout.LayoutOptions!
-PdfProof.PdfProofOptions.Layout.init -> void
 PdfProof.PdfProofOptions.Logger.get -> Microsoft.Extensions.Logging.ILogger?
 PdfProof.PdfProofOptions.Logger.init -> void
 PdfProof.PdfProofOptions.PdfProofOptions() -> void
-PdfProof.PdfProofOptions.Profile.get -> PdfProof.PdfProfile
-PdfProof.PdfProofOptions.Profile.init -> void
 const PdfProof.PdfDiagnosticCodes.Layout = "Layout" -> string!
 const PdfProof.PdfDiagnosticCodes.NoTextLayer = "NoTextLayer" -> string!
 const PdfProof.PdfDiagnosticCodes.Profile = "Profile" -> string!
@@ -66,7 +56,6 @@ static PdfProof.PdfProofDocument.Load(System.IO.Stream! pdf, PdfProof.PdfProofOp
 static PdfProof.PdfProofDocument.Load(byte[]! pdf, PdfProof.PdfProofOptions! options) -> PdfProof.PdfProofDocument!
 static PdfProof.PdfProofDocument.Load(string! path, PdfProof.PdfProofOptions! options) -> PdfProof.PdfProofDocument!
 static PdfProof.PdfProofOptions.Default.get -> PdfProof.PdfProofOptions!
-static PdfProof.PdfProofOptions.ForProfile(PdfProof.PdfProfile profile) -> PdfProof.PdfProofOptions!
 static PdfProof.PdfProofOptions.operator !=(PdfProof.PdfProofOptions? left, PdfProof.PdfProofOptions? right) -> bool
 static PdfProof.PdfProofOptions.operator ==(PdfProof.PdfProofOptions? left, PdfProof.PdfProofOptions? right) -> bool
 PdfProof.Layout.ILayoutStrategy
@@ -209,3 +198,23 @@ const PdfProof.PdfDiagnosticCodes.Structure = "Structure" -> string!
 const PdfProof.PdfDiagnosticCodes.StructureUnreadable = "StructureUnreadable" -> string!
 const PdfProof.PdfDiagnosticCodes.MarkInfoMismatch = "MarkInfoMismatch" -> string!
 const PdfProof.PdfDiagnosticCodes.StructureIncomplete = "StructureIncomplete" -> string!
+PdfProof.PdfDiagnostics.Profile.get -> PdfProof.PdfProfile!
+PdfProof.PdfProfile.<Clone>$() -> PdfProof.PdfProfile!
+PdfProof.PdfProfile.Equals(PdfProof.PdfProfile? other) -> bool
+PdfProof.PdfProfile.Layout.get -> PdfProof.Layout.LayoutOptions!
+PdfProof.PdfProfile.Layout.init -> void
+PdfProof.PdfProfile.Name.get -> string!
+PdfProof.PdfProfile.Name.init -> void
+PdfProof.PdfProfile.PdfProfile(string! name) -> void
+PdfProof.PdfProofOptions.Profile.get -> PdfProof.PdfProfile?
+PdfProof.PdfProofOptions.Profile.init -> void
+override PdfProof.PdfProfile.Equals(object? obj) -> bool
+override PdfProof.PdfProfile.GetHashCode() -> int
+override PdfProof.PdfProfile.ToString() -> string!
+static PdfProof.PdfProfile.Chromium.get -> PdfProof.PdfProfile!
+static PdfProof.PdfProfile.Default.get -> PdfProof.PdfProfile!
+static PdfProof.PdfProfile.QuestPdf.get -> PdfProof.PdfProfile!
+static PdfProof.PdfProfile.SelectPdf.get -> PdfProof.PdfProfile!
+static PdfProof.PdfProfile.Typst.get -> PdfProof.PdfProfile!
+static PdfProof.PdfProfile.operator !=(PdfProof.PdfProfile? left, PdfProof.PdfProfile? right) -> bool
+static PdfProof.PdfProfile.operator ==(PdfProof.PdfProfile? left, PdfProof.PdfProfile? right) -> bool

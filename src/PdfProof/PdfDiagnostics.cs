@@ -10,7 +10,7 @@ public sealed class PdfDiagnostics
         Entries = ReadOnly.List(entries);
     }
 
-    /// <summary>The profile the document was loaded with.</summary>
+    /// <summary>The profile the document was read with: the one in the options, or the detected one.</summary>
     public PdfProfile Profile { get; }
 
     /// <summary><see langword="true"/> when the profile was detected from the producer, not given in options.</summary>
