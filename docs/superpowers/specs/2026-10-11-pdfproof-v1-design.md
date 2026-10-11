@@ -501,13 +501,20 @@ Notes: semantics inferred from layout (the PDF is not tagged); profile SelectPdf
 
 | Command | Options | Output / exit code |
 |---|---|---|
-| `export <file>` | `--format md\|json`, `--sections …`, `--geometry`, `--profile auto\|selectpdf\|questpdf\|typst\|chromium\|default`, `--layout rows\|reading-order`, `--scrub default\|none\|inline`, `-o <path>` | Plain text to stdout or a file. 0, or 2 on error. |
+| `export <file>` | `--format md\|json`, `--sections …`, `--geometry`, `--profile auto\|selectpdf\|questpdf\|typst\|chromium\|default`, `--layout rows\|reading-order`, `--scrub default\|none\|inline`, `-o, --output <path>` | Plain content to stdout, or to a file with `--output`. Diagnostics to stderr. 0, or 2 on error. |
 | `lint <files or globs>` | `--suppress PP007,…`, `--format text\|json\|github` | 0 clean, 1 violations, 2 error. `github` emits workflow annotations. |
 | `explain <file>` | `--page n`, `--pass <name>` | Semantic outline and the decision log, grouped by pass |
 
 - **Spectre.Console.Cli** for commands, settings and help. **Spectre.Console** renders `lint` and `explain` output
   (tables, trees, rules, colors).
-- `export` writes **plain text without markup or ANSI codes**, so output can be piped, redirected and diffed.
+- **The command decides the audience.** `export` is for machines, `explain` is for humans, and `lint` serves both
+  (rich text by default, `--format json|github` for machines). No flag turns one into the other.
+- `export` writes exactly what `ToMarkdown()` / `ToJson()` return to stdout, with no markup, ANSI codes or layout,
+  whether stdout is a terminal or redirected. Piping, redirection and diffing need no flags:
+  `pdfproof export a.pdf > a.md`, `pdfproof export a.pdf | code -`.
+- `export` writes diagnostics and a short summary (profile, tagged or not, letters removed by clipping, warnings) to
+  **stderr** through Spectre.Console, so they never end up in redirected output. With `--output`, stdout is free and
+  the summary is rendered there as a table.
 - **Commands are thin.** Each parses and validates settings, calls a service, and renders the result. Logic lives in
   `PdfProof` / `PdfProof.Testing`, or in small CLI services (`ExportService`, `LintService`, `ExplainRenderer`) that
   are tested without the console (Spectre.Console.Testing for rendering).
