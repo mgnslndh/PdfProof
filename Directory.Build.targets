@@ -1,0 +1,17 @@
+<Project>
+  <!-- Every package carries the PdfProof icon (assets/README.md), its own README, symbols and a MinVer version.
+       In targets rather than props because projects set IsPackable in their own body, after the props. -->
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)assets/branding/brand/png/pdfproof-icon-128.png" Pack="true" PackagePath="icon.png" Visible="false" />
+    <None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="README.md" />
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

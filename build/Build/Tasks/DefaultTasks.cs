@@ -4,6 +4,7 @@ public static partial class Program
     static void RegisterDefaultTask()
     {
         Task("Default")
-            .IsDependentOn("Test");
+            .IsDependentOn("Test")
+            .IsDependentOn("Pack");
     }
 }

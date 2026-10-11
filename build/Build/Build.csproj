@@ -8,6 +8,11 @@
   <ItemGroup>
     <!-- Groups log output per task on GitHub Actions. -->
     <PackageReference Include="Cake.BuildSystems.Module" />
+    <ProjectReference Include="../Build.Cake.Extensions/Build.Cake.Extensions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Build.Cake.Extensions.Packaging" />
   </ItemGroup>
 
 </Project>
