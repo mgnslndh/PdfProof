@@ -12,15 +12,17 @@ public sealed class GeneratorArgumentsTests
         Assert.Equal(Path.Combine("artifacts", "corpus"), arguments.Output);
         Assert.Null(arguments.Producers);
         Assert.Equal("typst", arguments.Typst);
+        Assert.False(arguments.RequireAll);
     }
 
     [Fact]
     public void Every_option_is_read()
     {
-        var (arguments, _) = GeneratorArguments.Parse(["--source", "src", "--output", "out", "--producers", "typst, selectpdf", "--typst", "tools/typst"]);
+        var (arguments, _) = GeneratorArguments.Parse(["--source", "src", "--require-all", "--output", "out", "--producers", "typst, selectpdf", "--typst", "tools/typst"]);
 
         Assert.Equal(("src", "out", "tools/typst"), (arguments!.Source, arguments.Output, arguments.Typst));
         Assert.Equal(["typst", "selectpdf"], arguments.Producers);
+        Assert.True(arguments.RequireAll);
     }
 
     [Theory]

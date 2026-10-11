@@ -18,7 +18,7 @@ semantic models, exports deterministic Markdown and JSON, and offers assertions 
 ./build.ps1 --target=Test        # build and test only (corpus tests skip without fixtures)
 ./build.ps1 --target=GenerateFixtures [--producers=typst,selectpdf]  # render corpus/generated → artifacts/corpus
 ./build.ps1 --target=FetchCorpus # download the external corpus (pinned by SHA-256) → artifacts/external
-./build.ps1 --skip-generate --skip-fetch --require-fixtures  # flags: skip the first two steps; fail on missing fixtures
+./build.ps1 --skip-generate --skip-fetch --require-fixtures  # flags: skip the first two steps; fail on missing fixtures or unavailable producers
 dotnet test --project tests/PdfProof.Tests/PdfProof.Tests.csproj   # one test project
 # record new public API (run after adding public members; then rebuild and review the appended lines)
 dotnet build src/PdfProof/PdfProof.csproj 2>&1 | sed -n "s/.*error RS0016: Symbol '\([^']*\)' is not part of the declared public API.*/\1/p" | sort -u >> src/PdfProof/PublicAPI.Unshipped.txt

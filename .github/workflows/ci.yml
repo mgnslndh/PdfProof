@@ -25,9 +25,10 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: artifacts/corpus
-          key: fixtures-${{ hashFiles('corpus/generated/**', 'tools/**', 'Directory.Packages.props', 'build/Build.Cake.Extensions/Typst/TypstCli.cs') }}
+          key: fixtures-${{ hashFiles('corpus/generated/**', 'tools/**', 'Directory.Packages.props', 'global.json', 'build/Build.Cake.Extensions/Typst/TypstCli.cs', 'build/Build/Tasks/FixtureTasks.cs') }}
+      # --require-fixtures: a producer that is unavailable on the runner fails the job, so nothing incomplete is cached.
       - if: steps.cache.outputs.cache-hit != 'true'
-        run: ./build.ps1 --target=GenerateFixtures
+        run: ./build.ps1 --target=GenerateFixtures --require-fixtures
         shell: pwsh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

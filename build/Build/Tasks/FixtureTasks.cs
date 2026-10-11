@@ -2,7 +2,8 @@ public static partial class Program
 {
     // Renders corpus/generated with every producer available on this machine into artifacts/corpus
     // (tools/PdfProof.FixtureGenerator). Typst is the pinned CLI; on a platform without a pin, the generator uses typst
-    // from PATH. --producers=a,b renders only those producers.
+    // from PATH. --producers=a,b renders only those producers. With --require-fixtures, a producer that is unavailable
+    // here (and isn't best effort) fails the target, so CI never caches an incomplete corpus.
     static void RegisterFixtureTasks()
     {
         Task("GenerateFixtures")
@@ -19,6 +20,11 @@ public static partial class Program
                 catch (PlatformNotSupportedException ex)
                 {
                     Warning(ex.Message);
+                }
+
+                if (parameters.RequireFixtures)
+                {
+                    arguments.Append("--require-all");
                 }
 
                 if (parameters.Producers is { } producers)

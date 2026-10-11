@@ -25,4 +25,4 @@ if (documents.Count == 0)
     return 2;
 }
 
-return await new Generator(selected, Console.Out).RunAsync(documents, arguments.Output);
+return await new Generator(selected, Console.Out).RunAsync(documents, arguments.Output, arguments.RequireAll);

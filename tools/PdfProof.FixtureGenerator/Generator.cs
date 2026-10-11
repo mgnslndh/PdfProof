@@ -2,10 +2,11 @@ namespace PdfProof.FixtureGenerator;
 
 // Renders every corpus document with every producer into <output>/<document>/<producer>.pdf, writes manifest.json,
 // and decides the exit code: 1 when a producer that isn't best effort failed, otherwise 0. An unavailable producer is
-// a warning: each machine renders what it can, and CI requires the fixtures it needs (PDFPROOF_REQUIRE_FIXTURES).
+// a warning: each machine renders what it can. With requireAll (CI's fixtures job), an unavailable producer that isn't
+// best effort fails the run too, so an incomplete corpus is never cached as if it were complete.
 internal sealed class Generator(IReadOnlyList<IProducer> producers, TextWriter log)
 {
-    public async Task<int> RunAsync(IReadOnlyList<CorpusDocument> documents, string output)
+    public async Task<int> RunAsync(IReadOnlyList<CorpusDocument> documents, string output, bool requireAll = false)
     {
         Directory.CreateDirectory(output);
         var entries = new List<ManifestEntry>();
@@ -22,11 +23,26 @@ internal sealed class Generator(IReadOnlyList<IProducer> producers, TextWriter l
                 }
             }
 
-            var unavailable = await producer.CheckAsync();
+            string? unavailable;
+            try
+            {
+                unavailable = await producer.CheckAsync();
+            }
+            catch (Exception ex)
+            {
+                // A check that throws (a hung or missing tool) fails this producer only; the run goes on.
+                log.WriteLine($"{(producer.BestEffort ? "warning" : "error")}: {producer.Name} could not be checked: {ex.Message}");
+                entries.Add(new ManifestEntry(producer.Name, null, "failed", "check: " + ex.Message));
+                failed |= !producer.BestEffort;
+                continue;
+            }
+
             if (unavailable is not null)
             {
-                log.WriteLine($"warning: {producer.Name} is unavailable: {unavailable}");
+                var required = requireAll && !producer.BestEffort;
+                log.WriteLine($"{(required ? "error" : "warning")}: {producer.Name} is unavailable: {unavailable}");
                 entries.Add(new ManifestEntry(producer.Name, null, "unavailable", unavailable));
+                failed |= required;
                 continue;
             }
 

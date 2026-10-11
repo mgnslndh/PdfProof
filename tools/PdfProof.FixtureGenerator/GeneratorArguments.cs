@@ -1,10 +1,11 @@
 namespace PdfProof.FixtureGenerator;
 
 // The command line. Paths are relative to the working directory; the build runs from the repository root.
-internal sealed record GeneratorArguments(string Source, string Output, IReadOnlyList<string>? Producers, string Typst)
+// --require-all: an unavailable producer that isn't best effort fails the run (CI's fixtures job).
+internal sealed record GeneratorArguments(string Source, string Output, IReadOnlyList<string>? Producers, string Typst, bool RequireAll = false)
 {
     public const string Usage =
-        "Usage: PdfProof.FixtureGenerator [--source <dir>] [--output <dir>] [--producers <name,name,...>] [--typst <path>]";
+        "Usage: PdfProof.FixtureGenerator [--source <dir>] [--output <dir>] [--producers <name,name,...>] [--typst <path>] [--require-all]";
 
     public static (GeneratorArguments? Arguments, string? Error) Parse(IReadOnlyList<string> args)
     {
@@ -12,9 +13,16 @@ internal sealed record GeneratorArguments(string Source, string Output, IReadOnl
         var output = Path.Combine("artifacts", "corpus");
         var typst = "typst";
         IReadOnlyList<string>? producers = null;
+        var requireAll = false;
         for (var i = 0; i < args.Count; i++)
         {
             var name = args[i];
+            if (name == "--require-all")
+            {
+                requireAll = true;
+                continue;
+            }
+
             if (name is not ("--source" or "--output" or "--producers" or "--typst"))
             {
                 return (null, $"Unknown argument: {name}");
@@ -43,6 +51,6 @@ internal sealed record GeneratorArguments(string Source, string Output, IReadOnl
             }
         }
 
-        return (new GeneratorArguments(source, output, producers, typst), null);
+        return (new GeneratorArguments(source, output, producers, typst, requireAll), null);
     }
 }
