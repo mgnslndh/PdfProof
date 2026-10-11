@@ -75,6 +75,9 @@ An earlier throwaway spike showed that the approach works. Its findings shape th
 | D17 | Build | Cake.Sdk (project-based) with `build.ps1` / `build.sh` bootstraps. CI runs the same targets (§11). |
 | D18 | Versioning | MinVer (tag-based). Pre-releases to nuget.org from `0.1.0-alpha`. |
 | D19 | Naming in the repo | Only neutral sample data (e.g. "Consulting, senior", `example.com`). No real company or customer names. |
+| D20 | Agent skill for users | One Agent Skills `SKILL.md` skill teaching agents (Claude Code, Codex, Copilot) to test PDFs with PdfProof. It ships inside the CLI and is managed with `pdfproof skill install\|status\|uninstall` (§16). |
+| D21 | Agent guidance for contributors | `AGENTS.md` at the repo root (read by Codex and Copilot); `CLAUDE.md` imports it, so there is one source of truth (§16.4). |
+| D22 | After v1 | A Claude Code plugin marketplace in this repo (`/plugin marketplace add mgnslndh/PdfProof`) |
 
 ## 4. Architecture
 
@@ -97,6 +100,7 @@ PdfProof                 PdfPig, Microsoft.Extensions.Logging.Abstractions
 ### 4.2 Repository layout
 
 ```
+AGENTS.md, CLAUDE.md                guidance for agents working on this repo (§16.4)
 build.ps1, build.sh                 bootstraps (§11)
 global.json                         SDK + msbuild-sdks: Cake.Sdk
 Directory.Build.props / .targets    shared settings; packs assets/branding/brand/png/pdfproof-icon-128.png as icon.png
@@ -111,6 +115,9 @@ tests/
   PdfProof.Testing.Tests/
   PdfProof.Corpus.Tests/
   PdfProof.Cli.Tests/
+  PdfProof.Skill.Tests/             compiled sources of every C# snippet in the skill (§16.3)
+skills/
+  pdfproof/                         the agent skill: SKILL.md + references/ (§16)
 tools/
   PdfProof.FixtureGenerator/        not packed
 corpus/
@@ -504,6 +511,9 @@ Notes: semantics inferred from layout (the PDF is not tagged); profile SelectPdf
 | `export <file>` | `--format md\|json`, `--sections …`, `--geometry`, `--profile auto\|selectpdf\|questpdf\|typst\|chromium\|default`, `--layout rows\|reading-order`, `--scrub default\|none\|inline`, `-o, --output <path>` | Plain content to stdout, or to a file with `--output`. Diagnostics to stderr. 0, or 2 on error. |
 | `lint <files or globs>` | `--suppress PP007,…`, `--format text\|json\|github` | 0 clean, 1 violations, 2 error. `github` emits workflow annotations. |
 | `explain <file>` | `--page n`, `--pass <name>` | Semantic outline and the decision log, grouped by pass |
+| `skill install` | `--agent claude\|agents\|all`, `--user`, `--project <dir>`, `--force` | Installs the agent skill matching this tool's version (§16.2) |
+| `skill status` | `--user`, `--project <dir>` | Table of installed copies: location, version, state |
+| `skill uninstall` | `--agent claude\|agents\|all`, `--user`, `--project <dir>`, `--force` | Removes only the files PdfProof installed |
 
 - **Spectre.Console.Cli** for commands, settings and help. **Spectre.Console** renders `lint` and `explain` output
   (tables, trees, rules, colors).
@@ -611,7 +621,8 @@ build/
 |---|---|
 | `GenerateFixtures` | Renders every corpus document with every producer available on this OS; warns about unavailable ones |
 | `FetchCorpus` | Downloads and verifies external PDFs |
-| `Build`, `Test` | Build; unit, testing, corpus and CLI tests (net48 on Windows only) |
+| `Build`, `Test` | Build; unit, testing, corpus, CLI and skill tests (net48 on Windows only) |
+| `CheckSkill` | Fails when a C# snippet in `skills/pdfproof/` differs from its region in `PdfProof.Skill.Tests` (§16.3); part of `Test` |
 | `Pack`, `Publish` | NuGet packages and the tool; publish on a version tag |
 | `Default` | `GenerateFixtures → FetchCorpus → Build → Test` |
 
@@ -649,8 +660,8 @@ skeleton (Cake build, CI, packaging), the fixture generator with the `invoice` d
 
 | Version | Contains | Exit criteria |
 |---|---|---|
-| `0.1.0-alpha` | Core, `export`, `explain` | The invoice gives the same semantics from SelectPdf and Typst. Real-world SelectPdf documents evaluated privately. |
-| `0.2.0-alpha` | `PdfProof.Testing` (assertions, relations, invariants), `lint` | Tests written against real generated documents |
+| `0.1.0-alpha` | Core, `export`, `explain`, `skill install\|status\|uninstall`, the skill's exploring and snapshot parts | The invoice gives the same semantics from SelectPdf and Typst. Real-world SelectPdf documents evaluated privately, with an agent using the skill. |
+| `0.2.0-alpha` | `PdfProof.Testing` (assertions, relations, invariants), `lint`, the skill's assertion parts | Tests written against real generated documents |
 | `0.3.0-beta` | Sequences, polished failure messages, API review | Full v1 corpus matrix green or covered by known deviations |
 | `1.0.0` | API frozen, JSON Schema v1, docs and cookbook | A suite written against SelectPdf output passes against Typst output with few changes |
 
@@ -661,7 +672,8 @@ skeleton (Cake build, CI, packaging), the fixture generator with the `invoice` d
 | `PdfProof.Tests` | Layout, structure reader, each pass (with a fake-layout builder), exporters, scrubbing, volatility | net48 (Windows), net10.0 |
 | `PdfProof.Testing.Tests` | Narrowing and ordering rules, relations, sequences, invariants, failure messages (approval-tested), the xUnit `IAssertionException` check | net48, net10.0 |
 | `PdfProof.Corpus.Tests` | Producer matrix against the oracles, approved exports, identical output across cultures and OS | net48, net10.0 |
-| `PdfProof.Cli.Tests` | Commands end to end, exit codes, CLI services, rendering (Spectre.Console.Testing) | net10.0 |
+| `PdfProof.Cli.Tests` | Commands end to end, exit codes, CLI services, rendering (Spectre.Console.Testing), skill install/status/uninstall | net10.0 |
+| `PdfProof.Skill.Tests` | Every C# snippet in the skill, compiled and passing | net10.0 |
 
 - **Test stack:** xUnit v3 on Microsoft.Testing.Platform. TUnit can't run on net48.
 - **Approval tests:** Verify 32.0.1 (MIT), as a dev-only dependency.
@@ -698,6 +710,7 @@ skeleton (Cake build, CI, packaging), the fixture generator with the `invoice` d
 | OQ-3 | Licenses of the veraPDF corpus and the PDF/UA Reference Suite files | Before adding them |
 | OQ-4 | Default layout strategy per profile: is `Rows` right for SelectPdf documents with multi-column sections? | Private evaluation of `0.1.0-alpha` |
 | OQ-5 | Verify integration package after v1: Verify version range and license stance | After v1 |
+| OQ-6 | Which project folder does Codex read skills from? `.agents/skills/` is reported by third parties, not yet confirmed in OpenAI's docs (§16.2) | Plan 7 |
 
 ## 15. Risks
 
@@ -709,3 +722,87 @@ skeleton (Cake build, CI, packaging), the fixture generator with the `invoice` d
 | Fixture generation is Windows-bound (SelectPdf) | Separate Windows job; missing fixtures fail only in CI |
 | Sequence and relation semantics get subtle | Rules in §8.3, approval-tested messages, longest-partial-match diagnostics |
 | Snapshots approved blindly | Guidance in §13, semantic assertions as the main tool |
+| A stale agent skill teaches agents a wrong API | Snippets compiled from tests (§16.3); skill version stamped and checked by `skill status` |
+
+## 16. Agent support
+
+Agents (Claude Code, Codex, GitHub Copilot) are a primary way people will write PDF tests. PdfProof ships guidance for
+two audiences:
+
+- an **agent skill** for people who *use* PdfProof (§16.1–16.3)
+- **`AGENTS.md`** for agents that *work on* this repository (§16.4)
+
+### 16.1 The skill
+
+It uses the open Agent Skills format: a folder with `SKILL.md` (YAML front matter with `name` and `description`,
+then Markdown instructions) and reference files the agent loads only when needed.
+
+```
+skills/pdfproof/
+  SKILL.md                 the workflow and the rules; short
+  references/
+    assertions.md          PdfAssert: scopes, narrowing, relations, sequences, invariants
+    snapshots.md           plain Verify + PdfMarkdown/PdfJson, scrubbing, VolatilityDetector
+    cli.md                 export, explain, lint
+    producers.md           profiles, tagged vs untagged, tests that survive a change of producer
+    failures.md            reading a PdfProof failure message and what to do next
+```
+
+**Description (what makes agents pick it):** use when writing, fixing or reviewing .NET tests for generated PDFs with
+PdfProof, when asked to check what a generated PDF contains, or when moving PDF generation to another producer.
+
+**The workflow:**
+1. **Look before asserting.** Run `pdfproof export <file>` and `pdfproof explain <file>` to see the semantic view the
+   assertions will run against.
+2. **Make generation deterministic** (inject `TimeProvider` and ID generators). Scrubbing is the safety net.
+3. **Assert on meaning** with `PdfAssert`. Add a few Markdown snapshots through plain Verify.
+4. **On failure**, read the narrowing trail, closest candidates and excerpt before changing the test or the code.
+
+**The rules:**
+- Don't assert geometry, fonts or heading levels unless the task asks for it.
+- Prefer `containing:` over exact text for paragraphs.
+- Load a document once and share it.
+- Never weaken an assertion just to make it pass.
+
+**Content by milestone:**
+- `0.1.0-alpha`: exploring with the CLI, and snapshots.
+- `0.2.0-alpha`: assertions and lint.
+- `0.3.0-beta`: sequences.
+
+### 16.2 Distribution: `pdfproof skill`
+
+The skill's files are embedded in `PdfProof.Cli`, so the installed skill always matches the tool's version.
+
+| Command | Behavior |
+|---|---|
+| `skill install` | Writes the skill to `.claude/skills/pdfproof/` (Claude Code; Copilot reads it too) and/or `.agents/skills/pdfproof/` (Codex; Copilot reads it too). `--agent claude\|agents\|all` (default `all`). Project folder by default: the nearest ancestor with `.git`, or `--project <dir>`. `--user` uses `~/.claude/skills/` and `~/.agents/skills/` instead. Re-running it upgrades or downgrades to the tool's version. |
+| `skill status` | Shows a Spectre table: location, agents served, installed version, tool version, and a state: `Current`, `Outdated`, `Newer than tool`, `Modified` or `Not installed`. Exit code 0. |
+| `skill uninstall` | Removes the installed files and then the folder if it is empty. Never touches other skills. |
+
+- **Manifest:** each installed copy contains `.pdfproof-skill.json` with the tool version and a SHA-256 hash for every
+  file written. `status` compares against it, and `uninstall` deletes only the files listed in it.
+- **Local edits are protected:** if an installed file no longer matches its hash, `install` and `uninstall` stop and
+  name the files. `--force` overrides.
+- **Thin commands:** the logic lives in a `SkillInstaller` service that works on a root directory and is tested with
+  temporary folders. The commands only parse settings and render results.
+- **OQ-6:** the Codex project folder (`.agents/skills/`) must be confirmed against OpenAI's documentation before
+  release.
+
+### 16.3 Examples can't drift
+
+Every C# snippet in the skill is the body of a region in `tests/PdfProof.Skill.Tests`, a test project that compiles
+and passes. In the Markdown, a snippet is marked `<!-- snippet: name -->` before its code block. The `CheckSkill` build
+target (`Build.Cake.Extensions`) fails when a marked block differs from its `#region name`, or when a region or marker
+has no counterpart. Agents copy examples literally, so a stale example is worse than none.
+
+### 16.4 `AGENTS.md` for contributors
+
+- **`AGENTS.md`** at the repository root. It covers:
+  - what PdfProof is, and where the spec and plans live
+  - the build commands
+  - the repository layout
+  - the hard rules: no real company or customer names; `PublicAPI.Unshipped.txt` for every public API change; XML
+    docs; TDD; deterministic output; re-approval plus an "Output changes" entry for changed approved output; no
+    committed generated PDFs; licenses for external PDFs; net48 compatibility through Polyfill
+- **`CLAUDE.md`** contains only `@AGENTS.md`.
+- Every plan that adds commands, projects or rules updates `AGENTS.md` in the same change.
