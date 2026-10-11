@@ -12,6 +12,9 @@
   <ItemGroup>
     <PackageReference Include="Select.HtmlToPdf.NetCore" />
     <PackageReference Include="Microsoft.Playwright" />
+    <!-- QuestPDF runs under its Community license, which covers this open-source repository. -->
+    <PackageReference Include="QuestPDF" />
+    <PackageReference Include="PDFsharp-MigraDoc" />
   </ItemGroup>
 
   <ItemGroup>

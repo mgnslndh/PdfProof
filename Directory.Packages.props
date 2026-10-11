@@ -21,5 +21,7 @@
     <PackageVersion Include="Select.HtmlToPdf.NetCore" Version="26.4.0" />
     <!-- Playwright pins the Chromium build it installs. -->
     <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
+    <PackageVersion Include="QuestPDF" Version="2026.9.1" />
+    <PackageVersion Include="PDFsharp-MigraDoc" Version="6.2.4" />
   </ItemGroup>
 </Project>

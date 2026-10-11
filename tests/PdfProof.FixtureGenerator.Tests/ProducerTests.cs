@@ -10,7 +10,7 @@ public sealed class ProducerTests : IDisposable
     public void The_producers_have_the_names_the_corpus_tests_expect()
     {
         Assert.Equal(
-            ["chromium-tagged", "chromium-untagged", "libreoffice", "selectpdf", "typst"],
+            ["chromium-tagged", "chromium-untagged", "libreoffice", "migradoc", "questpdf-tagged", "questpdf-untagged", "selectpdf", "typst"],
             Producers.Select(Producers.All("typst"), null, out _).Select(p => p.Name));
     }
 
@@ -54,5 +54,44 @@ public sealed class ProducerTests : IDisposable
         // Playwright's informational version is a placeholder (1.0.0+commit); its file version is the package version.
         Assert.Equal("1.63.0", Versions.Of(typeof(Microsoft.Playwright.IPlaywright)));
         Assert.Equal("26.4.0", Versions.Of(typeof(SelectPdf.HtmlToPdf)));
+    }
+
+    [Fact]
+    public async Task QuestPdf_renders_the_invoice_and_tags_it_on_request()
+    {
+        var invoice = new CorpusDocument("invoice", _temp.Path);
+
+        var tagged = await Rendered(new QuestPdfProducer(tagged: true), invoice);
+        var untagged = await Rendered(new QuestPdfProducer(tagged: false), invoice);
+
+        Assert.Contains("/StructTreeRoot", tagged);
+        Assert.DoesNotContain("/StructTreeRoot", untagged);
+    }
+
+    [Fact]
+    public async Task MigraDoc_renders_the_invoice_when_fonts_are_available()
+    {
+        var producer = new MigraDocProducer();
+        if (await producer.CheckAsync() is { } reason)
+        {
+            Assert.Skip(reason);
+        }
+
+        Assert.StartsWith("%PDF-", await Rendered(producer, new CorpusDocument("invoice", _temp.Path)));
+    }
+
+    [Fact]
+    public void A_document_without_a_CSharp_version_is_reported()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => CSharpDocuments.For(new CorpusDocument("letter", _temp.Path)));
+
+        Assert.Equal("There is no C# version of the corpus document 'letter'. Add one in tools/PdfProof.FixtureGenerator/Documents/.", ex.Message);
+    }
+
+    // The PDF as Latin-1 text, so tests can look for PDF keywords in it.
+    private static async Task<string> Rendered(IProducer producer, CorpusDocument document)
+    {
+        Assert.Null(await producer.CheckAsync());
+        return System.Text.Encoding.Latin1.GetString(await producer.RenderAsync(document));
     }
 }

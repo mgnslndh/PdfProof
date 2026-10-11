@@ -2,12 +2,15 @@ namespace PdfProof.FixtureGenerator;
 
 internal static class Producers
 {
-    // Every producer. The corpus tests list the same names (CorpusProducer.All); Task 6 adds the C# producers.
+    // Every producer. The corpus tests list the same names (CorpusProducer.All).
     public static IReadOnlyList<IProducer> All(string typst) =>
     [
         new ChromiumProducer(tagged: false),
         new ChromiumProducer(tagged: true),
         new LibreOfficeProducer(LibreOfficeProducer.DefaultCandidates()),
+        new MigraDocProducer(),
+        new QuestPdfProducer(tagged: false),
+        new QuestPdfProducer(tagged: true),
         new SelectPdfProducer(),
         new TypstProducer(typst),
     ];
