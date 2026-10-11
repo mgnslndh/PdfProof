@@ -170,6 +170,14 @@ public sealed class PdfProofDocument
             diagnostics.Add(PdfDiagnosticCodes.Structure, null, $"{structure.Root.Descendants().Count()} elements");
         }
 
+        if (raw.SkippedStreamContent)
+        {
+            diagnostics.Add(
+                PdfDiagnosticCodes.StructureIncomplete,
+                null,
+                "Marked content inside form XObjects or annotations (/Stm) is not supported and is left out; the text of page marked content with the same MCID may include it.");
+        }
+
         if (raw.HasStructTreeRoot || raw.Marked)
         {
             if (raw.Marked && !structure.IsTagged)

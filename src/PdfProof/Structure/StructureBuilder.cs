@@ -71,21 +71,22 @@ internal sealed class StructureBuilder
             ? new StructureText(text, page, marked.Mcid)
             : null;
 
-    // The layout link on the same page with the same rectangle (normalized and rounded like the layout), so its text
-    // and target resolve exactly as in LayoutPage.Links.
+    // The layout link on the same page whose annotation has the same /Rect as written in the PDF, so its text and
+    // target resolve exactly as in LayoutPage.Links. Raw rectangles are compared, because PdfPig transforms layout
+    // rectangles by the page's crop box and rotation.
     private LayoutLink? Link(RawObjectReference reference)
     {
         if (reference.Subtype != "Link" || reference.Page is not { } page || page < 1 || page > _layout.Model.Pages.Count
-            || reference.Rectangle is not { } r || r.Any(double.IsNaN))
+            || reference.Rectangle is not { } rectangle)
         {
             return null;
         }
 
-        var box = Geometry.Round(new LayoutBox(Math.Min(r[0], r[2]), Math.Min(r[1], r[3]), Math.Max(r[0], r[2]), Math.Max(r[1], r[3])), _options.Decimals);
-        return _layout.Model.Pages[page - 1].Links.FirstOrDefault(link =>
-            Math.Abs(link.Box.Left - box.Left) < 0.5 && Math.Abs(link.Box.Bottom - box.Bottom) < 0.5 &&
-            Math.Abs(link.Box.Right - box.Right) < 0.5 && Math.Abs(link.Box.Top - box.Top) < 0.5);
+        return _layout.Model.Pages[page - 1].Links.FirstOrDefault(link => link.SourceRectangle is { } source && SameRectangle(source, rectangle));
     }
+
+    private static bool SameRectangle(IReadOnlyList<double> a, double[] b) =>
+        a.Count == 4 && b.Length == 4 && Enumerable.Range(0, 4).All(i => Math.Abs(a[i] - b[i]) < 0.001);
 
     // RoleMap can chain (Custom -> Custom2 -> P); stop at a role that isn't mapped further.
     private string MapRole(string role)

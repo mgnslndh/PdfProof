@@ -6,7 +6,8 @@ internal sealed record RawStructure(
     bool HasStructTreeRoot,
     bool Marked,
     IReadOnlyDictionary<string, string> RoleMap,
-    IReadOnlyList<RawElement> Elements)
+    IReadOnlyList<RawElement> Elements,
+    bool SkippedStreamContent = false)
 {
     public static RawStructure None { get; } = new(false, false, new Dictionary<string, string>(), []);
 }

@@ -5,6 +5,7 @@ using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
 using UglyToad.PdfPig.Outline;
+using UglyToad.PdfPig.Tokens;
 using UglyToad.PdfPig.Util;
 
 namespace PdfProof.Layout;
@@ -115,8 +116,14 @@ internal static class LayoutBuilder
             string.Join(" ", text),
             uri,
             targetPage,
-            Geometry.Round(Geometry.Bounds(rectangle), options.Decimals));
+            Geometry.Round(Geometry.Bounds(rectangle), options.Decimals),
+            SourceRectangle(annotation));
     }
+
+    private static IReadOnlyList<double>? SourceRectangle(Annotation annotation) =>
+        annotation.AnnotationDictionary.Data.TryGetValue("Rect", out var token) && token is ArrayToken { Length: 4 } array && array.Data.All(item => item is NumericToken)
+            ? array.Data.Cast<NumericToken>().Select(number => number.Double).ToArray()
+            : null;
 
     // Rows by baseline from the top (same tolerance as the Rows strategy), each row left to right.
     private static IEnumerable<LayoutWord> ReadingOrder(IEnumerable<LayoutWord> words)

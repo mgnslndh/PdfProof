@@ -17,6 +17,7 @@ internal sealed class RawPdf
     private readonly List<string> _objects = [];
     private readonly List<int> _pages = [];
     private readonly Dictionary<int, int> _contents = [];
+    private readonly Dictionary<int, string> _pageEntries = [];
     private readonly Dictionary<int, List<string>> _annotations = [];
     private readonly int _resources;
 
@@ -53,11 +54,13 @@ internal sealed class RawPdf
     public int AddStream(string entries, string data) =>
         Add($"<< {entries} /Length {Latin1.GetByteCount(data)} >>\nstream\n{data}\nendstream");
 
-    /// Adds a page with the given content stream and returns its object number (for /Dest arrays).
-    public int AddPage(string content)
+    /// Adds a page with the given content stream and returns its object number (for /Dest arrays). `pageEntries` adds
+    /// raw entries to the page dictionary, e.g. "/Rotate 90" or "/CropBox [10 10 595 842]".
+    public int AddPage(string content, string pageEntries = "")
     {
         var page = Reserve();
         _contents[page] = AddStream("", content);
+        _pageEntries[page] = pageEntries;
         _pages.Add(page);
         return page;
     }
@@ -78,7 +81,7 @@ internal sealed class RawPdf
         foreach (var page in _pages)
         {
             var annots = _annotations.TryGetValue(page, out var list) ? $" /Annots [{string.Join(" ", list)}]" : "";
-            Set(page, $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources {_resources} 0 R /Contents {_contents[page]} 0 R{annots} >>");
+            Set(page, $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources {_resources} 0 R /Contents {_contents[page]} 0 R{annots} {_pageEntries[page]} >>");
         }
 
         Set(1, $"<< /Type /Catalog /Pages 2 0 R {CatalogEntries} >>");

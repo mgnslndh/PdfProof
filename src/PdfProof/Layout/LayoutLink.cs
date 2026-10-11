@@ -3,8 +3,9 @@ namespace PdfProof.Layout;
 /// <summary>A link annotation. Normally exactly one of <see cref="Uri"/> and <see cref="TargetPage"/> is set.</summary>
 public sealed class LayoutLink
 {
-    internal LayoutLink(string text, string? uri, int? targetPage, LayoutBox box)
+    internal LayoutLink(string text, string? uri, int? targetPage, LayoutBox box, IReadOnlyList<double>? sourceRectangle)
     {
+        SourceRectangle = sourceRectangle;
         Text = text;
         Uri = uri;
         TargetPage = targetPage;
@@ -22,4 +23,8 @@ public sealed class LayoutLink
 
     /// <summary>The link rectangle.</summary>
     public LayoutBox Box { get; }
+
+    // The annotation's /Rect exactly as written, before PdfPig applies the page's crop box and rotation. The structure
+    // tree's annotation references are matched on it.
+    internal IReadOnlyList<double>? SourceRectangle { get; }
 }

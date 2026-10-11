@@ -23,4 +23,7 @@ public static class PdfDiagnosticCodes
 
     /// <summary><c>/MarkInfo /Marked</c> disagrees with whether the document has a structure tree.</summary>
     public const string MarkInfoMismatch = "MarkInfoMismatch";
+
+    /// <summary>Part of the structure tree couldn't be read faithfully and is left out. Logged as a warning.</summary>
+    public const string StructureIncomplete = "StructureIncomplete";
 }

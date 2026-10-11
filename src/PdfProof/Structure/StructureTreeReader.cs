@@ -14,6 +14,7 @@ internal sealed class StructureTreeReader
     private readonly PdfDocument _document;
     private readonly Dictionary<IndirectReference, int> _pageNumbers = [];
     private readonly HashSet<IndirectReference> _visited = [];
+    private bool _skippedStreamContent;
 
     private StructureTreeReader(PdfDocument document)
     {
@@ -46,7 +47,7 @@ internal sealed class StructureTreeReader
 
         IndexPages(Get(catalog, "Pages"));
         var elements = Kids(root).Select(kid => ReadKid(kid, null, 0)).OfType<RawElement>().ToList();
-        return new RawStructure(true, marked, roleMap, elements);
+        return new RawStructure(true, marked, roleMap, elements, _skippedStreamContent);
     }
 
     private RawKid? ReadKid(IToken kid, int? page, int depth)
@@ -65,6 +66,11 @@ internal sealed class StructureTreeReader
         {
             case NumericToken mcid:
                 return new RawMarkedContent(page, mcid.Int);
+            case DictionaryToken dictionary when Name(dictionary, "Type") == "MCR" && (Get(dictionary, "Stm") is not null || Get(dictionary, "StmOwn") is not null):
+                // Marked content inside a form XObject or an annotation's appearance stream. PdfPig reports it mixed
+                // with the page's own marked content, so it can't be resolved faithfully: leave it out and say so.
+                _skippedStreamContent = true;
+                return null;
             case DictionaryToken dictionary when Name(dictionary, "Type") == "MCR":
                 return Get(dictionary, "MCID") is NumericToken id ? new RawMarkedContent(PageOf(dictionary) ?? page, id.Int) : null;
             case DictionaryToken dictionary when Name(dictionary, "Type") == "OBJR":

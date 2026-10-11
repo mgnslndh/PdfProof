@@ -12,35 +12,38 @@ internal static class MarkedContentText
 
     public static IReadOnlyDictionary<int, string> Collect(IReadOnlyList<MarkedContentElement> elements, LayoutOptions options)
     {
+        // Iterative, so deeply nested marked content can't overflow the stack.
         var texts = new Dictionary<int, string>();
-        foreach (var element in elements)
+        var pending = new Stack<MarkedContentElement>();
+        for (var i = elements.Count - 1; i >= 0; i--)
         {
-            Collect(element, options, texts);
+            pending.Push(elements[i]);
+        }
+
+        while (pending.Count > 0)
+        {
+            var element = pending.Pop();
+            if (element.IsArtifact)
+            {
+                continue;
+            }
+
+            if (element.MarkedContentIdentifier >= 0)
+            {
+                var text = element.ActualText is { } actual ? Whitespace.Replace(WordFactory.Normalize(actual, options), " ").Trim() : Text(Letters(element), options);
+                texts[element.MarkedContentIdentifier] = texts.TryGetValue(element.MarkedContentIdentifier, out var earlier) && earlier.Length > 0
+                    ? (text.Length > 0 ? earlier + " " + text : earlier)
+                    : text;
+                continue; // nested sequences are part of this MCID's content (ISO 32000 doesn't allow nested MCIDs)
+            }
+
+            for (var i = element.Children.Count - 1; i >= 0; i--)
+            {
+                pending.Push(element.Children[i]);
+            }
         }
 
         return texts;
-    }
-
-    private static void Collect(MarkedContentElement element, LayoutOptions options, Dictionary<int, string> texts)
-    {
-        if (element.IsArtifact)
-        {
-            return;
-        }
-
-        if (element.MarkedContentIdentifier >= 0)
-        {
-            var text = element.ActualText is { } actual ? Whitespace.Replace(WordFactory.Normalize(actual, options), " ").Trim() : Text(Letters(element).ToList(), options);
-            texts[element.MarkedContentIdentifier] = texts.TryGetValue(element.MarkedContentIdentifier, out var earlier) && earlier.Length > 0
-                ? (text.Length > 0 ? earlier + " " + text : earlier)
-                : text;
-            return; // nested sequences are part of this MCID's content
-        }
-
-        foreach (var child in element.Children)
-        {
-            Collect(child, options, texts);
-        }
     }
 
     // Horizontal text: the word extractor recovers spaces from gaps, like the layout. Rotated text: content order is
@@ -59,6 +62,28 @@ internal static class MarkedContentText
         return Whitespace.Replace(WordFactory.Normalize(string.Concat(letters.Select(letter => letter.Value)), options), " ").Trim();
     }
 
-    private static IEnumerable<Letter> Letters(MarkedContentElement element) =>
-        element.Letters.Concat(element.Children.SelectMany(Letters));
+    // A sequence's letters in content order (its own, then those of nested sequences), leaving out nested
+    // artifacts. Iterative, so deep nesting can't overflow the stack.
+    private static List<Letter> Letters(MarkedContentElement root)
+    {
+        var letters = new List<Letter>();
+        var pending = new Stack<MarkedContentElement>();
+        pending.Push(root);
+        while (pending.Count > 0)
+        {
+            var element = pending.Pop();
+            if (element.IsArtifact)
+            {
+                continue;
+            }
+
+            letters.AddRange(element.Letters);
+            for (var i = element.Children.Count - 1; i >= 0; i--)
+            {
+                pending.Push(element.Children[i]);
+            }
+        }
+
+        return letters;
+    }
 }

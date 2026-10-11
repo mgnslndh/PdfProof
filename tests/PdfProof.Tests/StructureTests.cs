@@ -286,4 +286,66 @@ public sealed class StructureTests
 
         Assert.DoesNotContain(PdfProofDocument.Load(pdf.Build()).Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.MarkInfoMismatch);
     }
+
+    [Fact]
+    public void Deeply_nested_marked_content_does_not_overflow_the_stack()
+    {
+        // Final review of Plan 3: recursion over nested marked content crashed the process on deep nesting.
+        var depth = 20000;
+        var content = "/P <</MCID 0>> BDC\n" + string.Concat(Enumerable.Repeat("/Span BMC\n", depth)) +
+            RawPdf.Text(50, 750, "Deep") + string.Concat(Enumerable.Repeat("EMC\n", depth)) + "EMC\n";
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(content);
+        pdf.Tag($"{pdf.Add($"<< /S /P /Pg {page} 0 R /K 0 >>")} 0 R");
+
+        Assert.Equal("Deep", PdfProofDocument.Load(pdf.Build()).Structure.Root.Children[0].Text);
+    }
+
+    [Theory]
+    [InlineData("/CropBox [10 10 595 842]")]
+    [InlineData("/Rotate 90")]
+    public void Links_resolve_on_cropped_and_rotated_pages(string pageEntries)
+    {
+        // Final review of Plan 3: PdfPig transforms annotation rectangles by the page's crop box and rotation, so
+        // matching on geometry failed; links are matched on the annotation's own /Rect instead.
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("Link", 0, RawPdf.Text(150, 700, "our support site")), pageEntries);
+        var annotation = pdf.Add("<< /Type /Annot /Subtype /Link /Rect [145 695 245 715] /A << /S /URI /URI (https://example.com/support) >> >>");
+        pdf.Annotate(page, $"{annotation} 0 R");
+        pdf.Tag($"{pdf.Add($"<< /S /Link /Pg {page} 0 R /K [0 << /Type /OBJR /Obj {annotation} 0 R >>] >>")} 0 R");
+
+        var reference = Assert.Single(PdfProofDocument.Load(pdf.Build()).Structure.Root.Children[0].Content.OfType<StructureObjectReference>());
+
+        Assert.Equal("https://example.com/support", reference.Link?.Uri);
+    }
+
+    [Fact]
+    public void Marked_content_in_a_form_XObject_is_left_out_and_reported()
+    {
+        // Final review of Plan 3: an MCR with /Stm refers to marked content inside another content stream, which
+        // PdfPig can't tell apart from the page's own; resolving it against the page gave wrong text.
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "OnPage")));
+        var form = pdf.AddStream("/Type /XObject /Subtype /Form /BBox [0 0 100 100]", "");
+        var onPage = pdf.Add($"<< /S /P /Pg {page} 0 R /K 0 >>");
+        var inForm = pdf.Add($"<< /S /P /Pg {page} 0 R /K << /Type /MCR /MCID 0 /Stm {form} 0 R >> >>");
+        pdf.Tag($"{onPage} 0 R {inForm} 0 R");
+
+        var doc = PdfProofDocument.Load(pdf.Build());
+
+        Assert.Equal(["OnPage", ""], doc.Structure.Root.Children.Select(n => n.Text));
+        var entry = Assert.Single(doc.Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.StructureIncomplete);
+        Assert.StartsWith("Marked content inside form XObjects or annotations (/Stm) is not supported and is left out", entry.Message);
+    }
+
+    [Fact]
+    public void An_artifact_nested_inside_marked_content_is_not_part_of_its_text()
+    {
+        // Final review of Plan 3: Review Focus 4 for artifacts nested inside an MCID sequence.
+        var pdf = new RawPdf();
+        var page = pdf.AddPage("/P <</MCID 0>> BDC\n" + RawPdf.Text(50, 750, "Body") + RawPdf.Artifact(RawPdf.Text(50, 30, "Page 1")) + "EMC\n");
+        pdf.Tag($"{pdf.Add($"<< /S /P /Pg {page} 0 R /K 0 >>")} 0 R");
+
+        Assert.Equal("Body", PdfProofDocument.Load(pdf.Build()).Structure.Root.Children[0].Text);
+    }
 }

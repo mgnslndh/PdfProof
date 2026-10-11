@@ -208,3 +208,4 @@ PdfProof.Structure.StructureText.Text.get -> string!
 const PdfProof.PdfDiagnosticCodes.Structure = "Structure" -> string!
 const PdfProof.PdfDiagnosticCodes.StructureUnreadable = "StructureUnreadable" -> string!
 const PdfProof.PdfDiagnosticCodes.MarkInfoMismatch = "MarkInfoMismatch" -> string!
+const PdfProof.PdfDiagnosticCodes.StructureIncomplete = "StructureIncomplete" -> string!
