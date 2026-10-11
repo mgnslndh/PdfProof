@@ -4,7 +4,8 @@ using System.Text;
 namespace PdfProof.Tests;
 
 // Writes small PDFs from raw PDF syntax, for tests that need exact control: positions, clipping, rotation,
-// annotations, outlines, info entries and (from Plan 3) structure trees. Object 1 is the catalog, 2 the page tree.
+// annotations, outlines, info entries, (from Plan 3) structure trees and (from Plan 4) AcroForm fields (`Widget`,
+// `FormFields`). Object 1 is the catalog, 2 the page tree.
 // Every page is A4 (595 x 842 pt) and gets the fonts /F1 Helvetica, /F2 Helvetica-Bold, /F3 Helvetica-Oblique
 // (WinAnsiEncoding) and /F4 Helvetica whose encoding maps byte 0xAD to /softhyphen (U+00AD) and 0xA0 to /nbspace
 // (U+00A0), like producers that extract those characters as such (in plain WinAnsi they extract as '-' and ' '),
@@ -41,6 +42,9 @@ internal sealed class RawPdf
     /// The trailer's /Info dictionary, e.g. "<< /Title (Invoice) >>"; null leaves it out.
     public string? Info { get; set; }
 
+    /// The root form fields (object numbers), written as the catalog's /AcroForm << /Fields [...] >> when not empty.
+    public List<int> FormFields { get; } = [];
+
     public int Reserve() => Add("");
 
     public int Add(string body)
@@ -76,6 +80,20 @@ internal sealed class RawPdf
         list.Add(annotation);
     }
 
+    /// Adds a widget annotation to `page` and returns its object number. `entries` are raw field entries, e.g.
+    /// "/T (name) /FT /Tx /V (Ada)"; with `parent` the widget is a kid of that field (whose /Kids the caller writes).
+    public int Widget(int page, string entries, double left, double bottom, double right, double top, int? parent = null)
+    {
+        var parentEntry = parent is { } number ? $" /Parent {number} 0 R" : "";
+        var widget = Add(FormattableString.Invariant(
+            $"<< /Type /Annot /Subtype /Widget /P {page} 0 R /Rect [{left} {bottom} {right} {top}]{parentEntry} {entries} >>"));
+        Annotate(page, $"{widget} 0 R");
+        return widget;
+    }
+
+    /// An empty appearance stream, for /AP << /N << /On n 0 R /Off n 0 R >> >> entries of checkboxes and radio buttons.
+    public int Appearance() => AddStream("/Type /XObject /Subtype /Form /BBox [0 0 10 10]", "");
+
     public byte[] Build()
     {
         foreach (var page in _pages)
@@ -84,7 +102,8 @@ internal sealed class RawPdf
             Set(page, $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources {_resources} 0 R /Contents {_contents[page]} 0 R{annots} {_pageEntries[page]} >>");
         }
 
-        Set(1, $"<< /Type /Catalog /Pages 2 0 R {CatalogEntries} >>");
+        var acroForm = FormFields.Count > 0 ? $" /AcroForm << /Fields [{string.Join(" ", FormFields.Select(f => $"{f} 0 R"))}] >>" : "";
+        Set(1, $"<< /Type /Catalog /Pages 2 0 R {CatalogEntries}{acroForm} >>");
         Set(2, $"<< /Type /Pages /Kids [{string.Join(" ", _pages.Select(p => $"{p} 0 R"))}] /Count {_pages.Count} >>");
         var objects = new List<string>(_objects);
         var infoEntry = "";

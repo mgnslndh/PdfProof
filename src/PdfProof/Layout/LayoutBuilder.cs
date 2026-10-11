@@ -19,11 +19,12 @@ internal static class LayoutBuilder
         var pageCount = PdfPigCall.Read(() => document.NumberOfPages);
         var pages = new List<LayoutPage>(pageCount);
         var markedText = new Dictionary<int, IReadOnlyDictionary<int, string>>();
+        var formFields = FormFieldReader.Read(document, options, diagnostics);
         for (var number = 1; number <= pageCount; number++)
         {
             var pageNumber = number;
             var page = PdfPigCall.Read(() => document.GetPage(pageNumber), pageNumber);
-            pages.Add(BuildPage(page, pageNumber, options, diagnostics));
+            pages.Add(BuildPage(page, pageNumber, options, diagnostics, formFields.TryGetValue(pageNumber, out var fields) ? fields : []));
             if (collectMarkedText)
             {
                 var marked = PdfPigCall.Read(() => page.GetMarkedContents().ToList(), pageNumber);
@@ -34,7 +35,7 @@ internal static class LayoutBuilder
         return new LayoutBuildResult(new LayoutModel(pages, Bookmarks(document, diagnostics)), markedText);
     }
 
-    private static LayoutPage BuildPage(Page page, int number, LayoutOptions options, DiagnosticsCollector diagnostics)
+    private static LayoutPage BuildPage(Page page, int number, LayoutOptions options, DiagnosticsCollector diagnostics, IReadOnlyList<LayoutFormField> formFields)
     {
         var letters = PdfPigCall.Read(() => page.Letters.ToList(), number);
         var horizontal = letters.Where(letter => letter.TextOrientation == TextOrientation.Horizontal).ToList();
@@ -87,7 +88,8 @@ internal static class LayoutBuilder
             blocks,
             links,
             images,
-            otherAnnotations);
+            otherAnnotations,
+            formFields);
     }
 
     private static LayoutLink Link(Annotation annotation, IReadOnlyList<LayoutWord> words, IReadOnlyList<LayoutWord> rotatedWords, LayoutOptions options)

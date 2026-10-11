@@ -221,3 +221,25 @@ static PdfProof.PdfProfile.operator ==(PdfProof.PdfProfile? left, PdfProof.PdfPr
 PdfProof.PdfProofOptions.Password.get -> string?
 PdfProof.PdfProofOptions.Password.init -> void
 const PdfProof.PdfDiagnosticCodes.Encrypted = "Encrypted" -> string!
+PdfProof.Layout.LayoutFormField
+PdfProof.Layout.LayoutFormField.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutFormField.IsChecked.get -> bool?
+PdfProof.Layout.LayoutFormField.IsReadOnly.get -> bool
+PdfProof.Layout.LayoutFormField.IsRequired.get -> bool
+PdfProof.Layout.LayoutFormField.Kind.get -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormField.Name.get -> string!
+PdfProof.Layout.LayoutFormField.Options.get -> System.Collections.Generic.IReadOnlyList<string!>!
+PdfProof.Layout.LayoutFormField.Tooltip.get -> string?
+PdfProof.Layout.LayoutFormField.Value.get -> string?
+PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormFieldKind.Checkbox = 1 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormFieldKind.ComboBox = 3 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormFieldKind.ListBox = 4 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormFieldKind.PushButton = 5 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormFieldKind.RadioButton = 2 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormFieldKind.Signature = 6 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormFieldKind.Text = 0 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutFormFieldKind.Unknown = 7 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.Layout.LayoutPage.FormFields.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutFormField!>!
+const PdfProof.PdfDiagnosticCodes.FormFields = "FormFields" -> string!
+const PdfProof.PdfDiagnosticCodes.FormFieldsUnreadable = "FormFieldsUnreadable" -> string!

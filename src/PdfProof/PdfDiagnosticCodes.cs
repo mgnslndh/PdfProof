@@ -29,4 +29,10 @@ public static class PdfDiagnosticCodes
 
     /// <summary>Part of the structure tree couldn't be read faithfully and is left out. Logged as a warning.</summary>
     public const string StructureIncomplete = "StructureIncomplete";
+
+    /// <summary>How many form field widgets were read, and how many were left out for having no page.</summary>
+    public const string FormFields = "FormFields";
+
+    /// <summary>The form fields, or some of them, could not be read and are left out; pages are unaffected. Logged as a warning.</summary>
+    public const string FormFieldsUnreadable = "FormFieldsUnreadable";
 }
