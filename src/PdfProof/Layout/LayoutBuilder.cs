@@ -32,6 +32,15 @@ internal static class LayoutBuilder
         var strategy = options.Strategy;
         var blocks = Blocks(strategy.Arrange(words, options), options);
 
+        // Rotated text: the nearest-neighbour extractor understands orientation. The default extractor shreds
+        // vertical text into single letters that get mixed into horizontal rows.
+        var rotated = letters.Where(letter => letter.TextOrientation != TextOrientation.Horizontal).ToList();
+        if (rotated.Count > 0)
+        {
+            var rotatedWords = Words(PdfPigCall.Read(() => NearestNeighbourWordExtractor.Instance.GetWords(rotated).ToList(), number), options);
+            blocks.AddRange(RotatedText.Blocks(rotatedWords, options));
+        }
+
         diagnostics.Add(
             PdfDiagnosticCodes.Layout,
             number,
