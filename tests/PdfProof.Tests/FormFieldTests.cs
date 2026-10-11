@@ -188,4 +188,64 @@ public sealed class FormFieldTests
         Assert.Empty(doc.Layout.Pages[0].FormFields);
         Assert.DoesNotContain(doc.Diagnostics.Entries, e => e.Code is PdfDiagnosticCodes.FormFields or PdfDiagnosticCodes.FormFieldsUnreadable);
     }
+
+    [Fact]
+    public void A_field_shown_in_two_places_has_an_entry_per_widget()
+    {
+        // Review finding: PdfPig drops the widget kids of text, choice and signature fields.
+        var pdf = new RawPdf();
+        var first = pdf.AddPage("");
+        var second = pdf.AddPage("");
+        var city = pdf.Reserve();
+        var top = pdf.Widget(first, "", 100, 700, 300, 720, parent: city);
+        var bottom = pdf.Widget(second, "", 100, 100, 300, 120, parent: city);
+        pdf.Set(city, $"<< /T (city) /FT /Tx /V (Paris) /TU (City) /Kids [{top} 0 R {bottom} 0 R] >>");
+        pdf.FormFields.Add(city);
+
+        var doc = PdfProofDocument.Load(pdf.Build());
+
+        var onFirst = Assert.Single(doc.Layout.Pages[0].FormFields);
+        Assert.Equal(("city", LayoutFormFieldKind.Text, (string?)"Paris", (string?)"City", new LayoutBox(100, 700, 300, 720)), (onFirst.Name, onFirst.Kind, onFirst.Value, onFirst.Tooltip, onFirst.Box));
+        var onSecond = Assert.Single(doc.Layout.Pages[1].FormFields);
+        Assert.Equal(("city", new LayoutBox(100, 100, 300, 120)), (onSecond.Name, onSecond.Box));
+        Assert.Contains(doc.Diagnostics.Entries, e => e.ToString() == "FormFields: 2 form field widgets");
+    }
+
+    [Fact]
+    public void A_widget_kid_without_P_gets_its_page_from_the_page_annotations()
+    {
+        var pdf = new RawPdf();
+        pdf.AddPage("");
+        var second = pdf.AddPage("");
+        var city = pdf.Reserve();
+        var widget = pdf.Add($"<< /Type /Annot /Subtype /Widget /Rect [100 700 300 720] /Parent {city} 0 R >>");
+        pdf.Annotate(second, $"{widget} 0 R");
+        pdf.Set(city, $"<< /T (city) /FT /Tx /V (Paris) /Kids [{widget} 0 R] >>");
+        pdf.FormFields.Add(city);
+
+        var doc = PdfProofDocument.Load(pdf.Build());
+
+        Assert.Empty(doc.Layout.Pages[0].FormFields);
+        Assert.Equal("city", Assert.Single(doc.Layout.Pages[1].FormFields).Name);
+    }
+
+    [Fact]
+    public void A_cyclic_field_tree_is_reported_and_the_document_still_loads()
+    {
+        // Review finding: PdfPig's form reader recurses through /Kids without a visited set, so a cycle overflowed the stack.
+        var pdf = new RawPdf();
+        pdf.AddPage(RawPdf.Text(50, 750, "Hello"));
+        var a = pdf.Reserve();
+        var b = pdf.Reserve();
+        pdf.Set(a, $"<< /T (a) /Parent {b} 0 R /Kids [{b} 0 R] >>");
+        pdf.Set(b, $"<< /T (b) /Parent {a} 0 R /Kids [{a} 0 R] >>");
+        pdf.FormFields.Add(a);
+
+        var doc = PdfProofDocument.Load(pdf.Build());
+
+        Assert.Equal("Hello", doc.Layout.Pages[0].Text);
+        Assert.Empty(doc.Layout.Pages[0].FormFields);
+        var warning = Assert.Single(doc.Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.FormFieldsUnreadable);
+        Assert.Equal("The form fields could not be read and are left out: the field tree has a cycle.", warning.Message);
+    }
 }
