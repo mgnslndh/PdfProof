@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/PdfProof/PdfProof.csproj" />
+    <Project Path="src/PdfProof.Testing/PdfProof.Testing.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PdfProof.Tests/PdfProof.Tests.csproj" />
+    <Project Path="tests/PdfProof.Testing.Tests/PdfProof.Testing.Tests.csproj" />
   </Folder>
 </Solution>
