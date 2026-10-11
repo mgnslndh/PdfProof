@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Polyfill" PrivateAssets="all" />
+    <PackageReference Include="System.Text.Json" Condition="'$(TargetFramework)' == 'net48'" />
+    <ProjectReference Include="../../src/PdfProof/PdfProof.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The comparison's own tests build small PDFs with the same helper as PdfProof.Tests. -->
+    <Compile Include="../PdfProof.Tests/RawPdf.cs" Link="RawPdf.cs" />
+  </ItemGroup>
+
+</Project>
