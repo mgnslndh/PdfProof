@@ -17,6 +17,7 @@
   <ItemGroup>
     <AdditionalFiles Include="PublicAPI.Shipped.txt" />
     <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+    <InternalsVisibleTo Include="PdfProof.Tests" />
   </ItemGroup>
 
 </Project>

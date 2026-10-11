@@ -1,4 +1,3 @@
-using System.Globalization;
 using UglyToad.PdfPig;
 
 namespace PdfProof;
@@ -77,27 +76,11 @@ public sealed class PdfProofDocument
         try
         {
             using var document = PdfDocument.Open(pdf);
-            return new PdfProofDocument(ReadMetadata(document));
+            return new PdfProofDocument(MetadataReader.Read(document));
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             throw new PdfProofException($"The input could not be read as a PDF: {ex.Message}", ex);
         }
-    }
-
-    private static PdfMetadata ReadMetadata(PdfDocument document)
-    {
-        var info = document.Information;
-        return new PdfMetadata(
-            document.Version.ToString("0.0", CultureInfo.InvariantCulture),
-            document.NumberOfPages,
-            info.Title,
-            info.Author,
-            info.Subject,
-            info.Keywords,
-            info.Creator,
-            info.Producer,
-            info.GetCreatedDateTimeOffset(),
-            info.GetModifiedDateTimeOffset());
     }
 }

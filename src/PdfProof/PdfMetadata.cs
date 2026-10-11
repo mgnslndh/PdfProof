@@ -16,7 +16,8 @@ public sealed class PdfMetadata
         string? creator,
         string? producer,
         DateTimeOffset? creationDate,
-        DateTimeOffset? modifiedDate)
+        DateTimeOffset? modifiedDate,
+        IReadOnlyDictionary<string, string> custom)
     {
         PdfVersion = pdfVersion;
         PageCount = pageCount;
@@ -28,6 +29,7 @@ public sealed class PdfMetadata
         Producer = producer;
         CreationDate = creationDate;
         ModifiedDate = modifiedDate;
+        Custom = custom;
     }
 
     /// <summary>The PDF version from the file header, always formatted with a dot, e.g. <c>1.7</c>.</summary>
@@ -59,4 +61,10 @@ public sealed class PdfMetadata
 
     /// <summary>The <c>/ModDate</c> entry, when present and valid.</summary>
     public DateTimeOffset? ModifiedDate { get; }
+
+    /// <summary>
+    /// The info dictionary's other entries (not Title, Author, Subject, Keywords, Creator, Producer, CreationDate or
+    /// ModDate), sorted by key with ordinal comparison.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Custom { get; }
 }

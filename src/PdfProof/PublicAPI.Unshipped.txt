@@ -18,3 +18,4 @@ PdfProof.PdfProofException.PdfProofException(string! message, System.Exception? 
 static PdfProof.PdfProofDocument.Load(byte[]! pdf) -> PdfProof.PdfProofDocument!
 static PdfProof.PdfProofDocument.Load(string! path) -> PdfProof.PdfProofDocument!
 static PdfProof.PdfProofDocument.Load(System.IO.Stream! pdf) -> PdfProof.PdfProofDocument!
+PdfProof.PdfMetadata.Custom.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
