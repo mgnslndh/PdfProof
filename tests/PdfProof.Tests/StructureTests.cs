@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using PdfProof.Structure;
 
 namespace PdfProof.Tests;
@@ -201,5 +202,88 @@ public sealed class StructureTests
 
         var node = Assert.Single(structure.Root.Children);
         Assert.Equal("Body text", node.Text);
+    }
+
+    [Fact]
+    public void A_structure_tree_with_a_cycle_loads_in_bounded_time()
+    {
+        // Review Focus 1: an element whose /K points back at its parent.
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Hello")));
+        var parent = pdf.Reserve();
+        var child = pdf.Add($"<< /S /P /Pg {page} 0 R /K [0 {parent} 0 R] >>");
+        pdf.Set(parent, $"<< /S /Div /K [{child} 0 R] >>");
+        pdf.Tag($"{parent} 0 R");
+
+        var structure = PdfProofDocument.Load(pdf.Build()).Structure;
+
+        Assert.Equal("Hello", Assert.Single(structure.Root.Descendants(), n => n.Role == "P").Text);
+    }
+
+    [Fact]
+    public void A_very_deep_structure_tree_loads_without_overflowing_the_stack()
+    {
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Deep")));
+        var current = pdf.Add($"<< /S /P /Pg {page} 0 R /K 0 >>");
+        for (var i = 0; i < 2000; i++)
+        {
+            current = pdf.Add($"<< /S /Div /K [{current} 0 R] >>");
+        }
+
+        pdf.Tag($"{current} 0 R");
+
+        var structure = PdfProofDocument.Load(pdf.Build()).Structure;
+
+        Assert.True(structure.IsTagged); // elements below the depth limit (256) are left out
+    }
+
+    [Fact]
+    public void A_structure_tree_referencing_a_missing_object_loads_with_StructureUnreadable()
+    {
+        // Review Focus 2: PdfPig throws for a reference to an object that doesn't exist.
+        var logger = new ListLogger();
+        var pdf = new RawPdf();
+        pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Hello")));
+        pdf.Tag("999 0 R");
+
+        var doc = PdfProofDocument.Load(pdf.Build(), PdfProofOptions.Default with { Logger = logger });
+
+        Assert.Equal("Hello", doc.Layout.Pages[0].Text);
+        Assert.False(doc.Structure.IsTagged);
+        var entry = Assert.Single(doc.Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.StructureUnreadable);
+        Assert.StartsWith("The structure tree could not be read and is left out: ", entry.Message);
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Warning && e.Message.StartsWith("StructureUnreadable", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true, false, "/MarkInfo sets /Marked true, but the document has no structure tree with elements.")]
+    [InlineData(false, true, "The document has a structure tree, but /MarkInfo doesn't set /Marked true.")]
+    public void A_MarkInfo_flag_that_disagrees_with_the_structure_tree_is_noted(bool marked, bool tree, string message)
+    {
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Hello")));
+        if (tree)
+        {
+            pdf.Tag($"{pdf.Add($"<< /S /P /Pg {page} 0 R /K 0 >>")} 0 R", marked: marked);
+        }
+        else if (marked)
+        {
+            pdf.CatalogEntries += " /MarkInfo << /Marked true >>";
+        }
+
+        var entry = Assert.Single(PdfProofDocument.Load(pdf.Build()).Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.MarkInfoMismatch);
+
+        Assert.Equal(message, entry.Message);
+    }
+
+    [Fact]
+    public void A_consistently_tagged_document_has_no_MarkInfo_note()
+    {
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Hello")));
+        pdf.Tag($"{pdf.Add($"<< /S /P /Pg {page} 0 R /K 0 >>")} 0 R");
+
+        Assert.DoesNotContain(PdfProofDocument.Load(pdf.Build()).Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.MarkInfoMismatch);
     }
 }

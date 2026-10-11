@@ -17,4 +17,10 @@ public static class PdfDiagnosticCodes
 
     /// <summary>What the structure tree holds, for tagged documents.</summary>
     public const string Structure = "Structure";
+
+    /// <summary>The structure tree could not be read and is left out; pages and layout are unaffected. Logged as a warning.</summary>
+    public const string StructureUnreadable = "StructureUnreadable";
+
+    /// <summary><c>/MarkInfo /Marked</c> disagrees with whether the document has a structure tree.</summary>
+    public const string MarkInfoMismatch = "MarkInfoMismatch";
 }

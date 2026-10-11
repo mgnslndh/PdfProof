@@ -155,7 +155,7 @@ public sealed class PdfProofDocument
             null,
             detected ? $"{effective.Profile} (detected from producer \"{metadata.Producer}\")" : $"{effective.Profile} (from options)");
 
-        var raw = PdfPigCall.Read(() => StructureTreeReader.Read(document));
+        var raw = ReadStructure(document, diagnostics);
         var tagged = raw.Elements.Count > 0;
         var layoutResult = LayoutBuilder.Build(document, effective.Layout, diagnostics, collectMarkedText: tagged);
         var layout = layoutResult.Model;
@@ -170,6 +170,36 @@ public sealed class PdfProofDocument
             diagnostics.Add(PdfDiagnosticCodes.Structure, null, $"{structure.Root.Descendants().Count()} elements");
         }
 
+        if (raw.HasStructTreeRoot || raw.Marked)
+        {
+            if (raw.Marked && !structure.IsTagged)
+            {
+                diagnostics.Add(PdfDiagnosticCodes.MarkInfoMismatch, null, "/MarkInfo sets /Marked true, but the document has no structure tree with elements.");
+            }
+            else if (!raw.Marked && structure.IsTagged)
+            {
+                diagnostics.Add(PdfDiagnosticCodes.MarkInfoMismatch, null, "The document has a structure tree, but /MarkInfo doesn't set /Marked true.");
+            }
+        }
+
         return new PdfProofDocument(metadata, layout, structure, diagnostics.ToDiagnostics(effective.Profile, detected));
+    }
+
+    // The structure tree is secondary to page content: a tree the parser rejects is reported and left out, and the
+    // document still loads.
+    private static RawStructure ReadStructure(PdfDocument document, DiagnosticsCollector diagnostics)
+    {
+        try
+        {
+            return PdfPigCall.Read(() => StructureTreeReader.Read(document));
+        }
+        catch (PdfProofException ex)
+        {
+            diagnostics.Add(
+                PdfDiagnosticCodes.StructureUnreadable,
+                null,
+                "The structure tree could not be read and is left out: " + (ex.InnerException ?? ex).Message);
+            return RawStructure.None;
+        }
     }
 }
