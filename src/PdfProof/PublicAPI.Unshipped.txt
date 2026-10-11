@@ -180,3 +180,32 @@ PdfProof.Layout.LayoutBookmark.Title.get -> string!
 PdfProof.Layout.LayoutBookmark.Uri.get -> string?
 PdfProof.Layout.LayoutModel.Bookmarks.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutBookmark!>!
 const PdfProof.PdfDiagnosticCodes.BookmarksUnreadable = "BookmarksUnreadable" -> string!
+PdfProof.PdfProofDocument.Structure.get -> PdfProof.Structure.StructureModel!
+PdfProof.Structure.StructureContent
+PdfProof.Structure.StructureContent.Page.get -> int?
+PdfProof.Structure.StructureModel
+PdfProof.Structure.StructureModel.IsTagged.get -> bool
+PdfProof.Structure.StructureModel.Root.get -> PdfProof.Structure.StructureNode!
+PdfProof.Structure.StructureNode
+PdfProof.Structure.StructureNode.ActualText.get -> string?
+PdfProof.Structure.StructureNode.Alt.get -> string?
+PdfProof.Structure.StructureNode.Children.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Structure.StructureNode!>!
+PdfProof.Structure.StructureNode.ColumnSpan.get -> int
+PdfProof.Structure.StructureNode.Content.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Structure.StructureContent!>!
+PdfProof.Structure.StructureNode.CustomRole.get -> string?
+PdfProof.Structure.StructureNode.Descendants() -> System.Collections.Generic.IEnumerable<PdfProof.Structure.StructureNode!>!
+PdfProof.Structure.StructureNode.Language.get -> string?
+PdfProof.Structure.StructureNode.Role.get -> string!
+PdfProof.Structure.StructureNode.RowSpan.get -> int
+PdfProof.Structure.StructureNode.Scope.get -> string?
+PdfProof.Structure.StructureNode.Text.get -> string!
+PdfProof.Structure.StructureObjectReference
+PdfProof.Structure.StructureObjectReference.Link.get -> PdfProof.Layout.LayoutLink?
+PdfProof.Structure.StructureObjectReference.Type.get -> string!
+PdfProof.Structure.StructureText
+PdfProof.Structure.StructureText.MarkedContentId.get -> int
+PdfProof.Structure.StructureText.Text.get -> string!
+const PdfProof.PdfDiagnosticCodes.Structure = "Structure" -> string!
+const PdfProof.PdfDiagnosticCodes.StructureUnreadable = "StructureUnreadable" -> string!
+const PdfProof.PdfDiagnosticCodes.MarkInfoMismatch = "MarkInfoMismatch" -> string!
+const PdfProof.PdfDiagnosticCodes.StructureIncomplete = "StructureIncomplete" -> string!

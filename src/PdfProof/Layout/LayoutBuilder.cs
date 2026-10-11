@@ -5,6 +5,7 @@ using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
 using UglyToad.PdfPig.Outline;
+using UglyToad.PdfPig.Tokens;
 using UglyToad.PdfPig.Util;
 
 namespace PdfProof.Layout;
@@ -13,18 +14,24 @@ namespace PdfProof.Layout;
 // PdfPig goes through PdfPigCall.
 internal static class LayoutBuilder
 {
-    public static LayoutModel Build(PdfDocument document, LayoutOptions options, DiagnosticsCollector diagnostics)
+    public static LayoutBuildResult Build(PdfDocument document, LayoutOptions options, DiagnosticsCollector diagnostics, bool collectMarkedText)
     {
         var pageCount = PdfPigCall.Read(() => document.NumberOfPages);
         var pages = new List<LayoutPage>(pageCount);
+        var markedText = new Dictionary<int, IReadOnlyDictionary<int, string>>();
         for (var number = 1; number <= pageCount; number++)
         {
             var pageNumber = number;
             var page = PdfPigCall.Read(() => document.GetPage(pageNumber), pageNumber);
             pages.Add(BuildPage(page, pageNumber, options, diagnostics));
+            if (collectMarkedText)
+            {
+                var marked = PdfPigCall.Read(() => page.GetMarkedContents().ToList(), pageNumber);
+                markedText[pageNumber] = MarkedContentText.Collect(marked, options);
+            }
         }
 
-        return new LayoutModel(pages, Bookmarks(document, diagnostics));
+        return new LayoutBuildResult(new LayoutModel(pages, Bookmarks(document, diagnostics)), markedText);
     }
 
     private static LayoutPage BuildPage(Page page, int number, LayoutOptions options, DiagnosticsCollector diagnostics)
@@ -109,8 +116,14 @@ internal static class LayoutBuilder
             string.Join(" ", text),
             uri,
             targetPage,
-            Geometry.Round(Geometry.Bounds(rectangle), options.Decimals));
+            Geometry.Round(Geometry.Bounds(rectangle), options.Decimals),
+            SourceRectangle(annotation));
     }
+
+    private static IReadOnlyList<double>? SourceRectangle(Annotation annotation) =>
+        annotation.AnnotationDictionary.Data.TryGetValue("Rect", out var token) && token is ArrayToken { Length: 4 } array && array.Data.All(item => item is NumericToken)
+            ? array.Data.Cast<NumericToken>().Select(number => number.Double).ToArray()
+            : null;
 
     // Rows by baseline from the top (same tolerance as the Rows strategy), each row left to right.
     private static IEnumerable<LayoutWord> ReadingOrder(IEnumerable<LayoutWord> words)

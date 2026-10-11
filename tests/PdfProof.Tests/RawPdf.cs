@@ -17,6 +17,7 @@ internal sealed class RawPdf
     private readonly List<string> _objects = [];
     private readonly List<int> _pages = [];
     private readonly Dictionary<int, int> _contents = [];
+    private readonly Dictionary<int, string> _pageEntries = [];
     private readonly Dictionary<int, List<string>> _annotations = [];
     private readonly int _resources;
 
@@ -53,11 +54,13 @@ internal sealed class RawPdf
     public int AddStream(string entries, string data) =>
         Add($"<< {entries} /Length {Latin1.GetByteCount(data)} >>\nstream\n{data}\nendstream");
 
-    /// Adds a page with the given content stream and returns its object number (for /Dest arrays).
-    public int AddPage(string content)
+    /// Adds a page with the given content stream and returns its object number (for /Dest arrays). `pageEntries` adds
+    /// raw entries to the page dictionary, e.g. "/Rotate 90" or "/CropBox [10 10 595 842]".
+    public int AddPage(string content, string pageEntries = "")
     {
         var page = Reserve();
         _contents[page] = AddStream("", content);
+        _pageEntries[page] = pageEntries;
         _pages.Add(page);
         return page;
     }
@@ -78,7 +81,7 @@ internal sealed class RawPdf
         foreach (var page in _pages)
         {
             var annots = _annotations.TryGetValue(page, out var list) ? $" /Annots [{string.Join(" ", list)}]" : "";
-            Set(page, $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources {_resources} 0 R /Contents {_contents[page]} 0 R{annots} >>");
+            Set(page, $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources {_resources} 0 R /Contents {_contents[page]} 0 R{annots} {_pageEntries[page]} >>");
         }
 
         Set(1, $"<< /Type /Catalog /Pages 2 0 R {CatalogEntries} >>");
@@ -120,6 +123,22 @@ internal sealed class RawPdf
     /// A text object showing one string at (x, y).
     public static string Text(double x, double y, string text, int size = 12, string font = "F1") =>
         FormattableString.Invariant($"BT /{font} {size} Tf {x} {y} Td ({Escape(text)}) Tj ET\n");
+
+    /// A marked-content sequence with an MCID, as a Tagged PDF writes it: "/P <</MCID 0>> BDC ... EMC".
+    public static string Marked(string tag, int mcid, string body) =>
+        FormattableString.Invariant($"/{tag} <</MCID {mcid}>> BDC\n{body}EMC\n");
+
+    /// An artifact sequence (running header, page number): "/Artifact BMC ... EMC".
+    public static string Artifact(string body) => $"/Artifact BMC\n{body}EMC\n";
+
+    /// Adds a /StructTreeRoot whose /K array holds `kids` (e.g. "12 0 R 13 0 R"), plus /MarkInfo /Marked true unless
+    /// `marked` is false. Returns the root's object number.
+    public int Tag(string kids, string rootEntries = "", bool marked = true)
+    {
+        var root = Add($"<< /Type /StructTreeRoot /K [{kids}] {rootEntries} >>");
+        CatalogEntries += $" /StructTreeRoot {root} 0 R" + (marked ? " /MarkInfo << /Marked true >>" : "");
+        return root;
+    }
 
     private static string Escape(string text) =>
         text.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");

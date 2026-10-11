@@ -15,7 +15,8 @@ internal sealed class DiagnosticsCollector(ILogger? logger)
     }
 
     private static bool IsWarning(string code) =>
-        code is PdfDiagnosticCodes.NoTextLayer or PdfDiagnosticCodes.BookmarksUnreadable;
+        code is PdfDiagnosticCodes.NoTextLayer or PdfDiagnosticCodes.BookmarksUnreadable or PdfDiagnosticCodes.StructureUnreadable
+            or PdfDiagnosticCodes.StructureIncomplete;
 
     public PdfDiagnostics ToDiagnostics(PdfProfile profile, bool profileDetected) =>
         new(profile, profileDetected, _entries.ToArray());

@@ -27,7 +27,7 @@ On Windows, tests run on net48 and net10.0; elsewhere on net10.0 only.
 
 | Path | What |
 |---|---|
-| `src/PdfProof` | Core: `PdfProofDocument`, options and profiles, diagnostics; `Layout/` (layout model and strategies) (netstandard2.0; net8.0; net10.0) |
+| `src/PdfProof` | Core: `PdfProofDocument`, options and profiles, diagnostics; `Layout/` (layout model and strategies); `Structure/` (Tagged PDF structure tree) (netstandard2.0; net8.0; net10.0) |
 | `src/PdfProof.Testing` | Assertions; `PdfAssertionException` |
 | `src/Shared` | Source shared into every `src/` project (`Throw`) |
 | `tests/` | xUnit v3 on Microsoft.Testing.Platform |
@@ -40,7 +40,7 @@ On Windows, tests run on net48 and net10.0; elsewhere on net10.0 only.
   data ("Consulting, senior", `example.com`).
 - **TDD:** write the failing test first, see it fail, then implement.
 - **Throwing:** guard clauses and throws use `Throw` (`src/Shared/Throw/`, namespace `PdfProof.Shared`, implicit in every `src/` project): `Throw.IfNull(x)`, `Throw.ArgumentException(…)`. BCL helpers go in `Throw.cs` (kept close to its dotnet/extensions upstream so it can be shared), PdfProof helpers in `Throw.PdfProof.cs`.
-- **Test PDFs:** build them in code. Use `tests/PdfProof.Tests/RawPdf.cs` (raw PDF syntax: exact positions, clipping, rotation, annotations, outlines) or PdfPig's `PdfDocumentBuilder`. Don't commit generated PDF files.
+- **Test PDFs:** build them in code. Use `tests/PdfProof.Tests/RawPdf.cs` (raw PDF syntax: exact positions, clipping, rotation, annotations, outlines, marked content and structure trees: `RawPdf.Marked`, `RawPdf.Tag`) or PdfPig's `PdfDocumentBuilder`. Don't commit generated PDF files.
 - **Calls into PdfPig** go through `PdfPigCall.Read`, so parser errors become `PdfProofException` and PdfProof bugs don't.
 - **Public API:** every public API change is recorded in that project's `PublicAPI.Unshipped.txt`; the build fails
   otherwise. Every public member has XML docs.

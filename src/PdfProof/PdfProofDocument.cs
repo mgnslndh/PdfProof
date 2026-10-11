@@ -1,5 +1,6 @@
 using System.Globalization;
 using PdfProof.Layout;
+using PdfProof.Structure;
 using UglyToad.PdfPig;
 
 namespace PdfProof;
@@ -10,10 +11,11 @@ namespace PdfProof;
 /// </summary>
 public sealed class PdfProofDocument
 {
-    private PdfProofDocument(PdfMetadata metadata, LayoutModel layout, PdfDiagnostics diagnostics)
+    private PdfProofDocument(PdfMetadata metadata, LayoutModel layout, StructureModel structure, PdfDiagnostics diagnostics)
     {
         Metadata = metadata;
         Layout = layout;
+        Structure = structure;
         Diagnostics = diagnostics;
     }
 
@@ -22,6 +24,9 @@ public sealed class PdfProofDocument
 
     /// <summary>The geometry: pages, with text grouped into blocks, lines and spans.</summary>
     public LayoutModel Layout { get; }
+
+    /// <summary>The Tagged PDF structure tree; empty, with <see cref="StructureModel.IsTagged"/> false, when the PDF isn't tagged.</summary>
+    public StructureModel Structure { get; }
 
     /// <summary>The profile used and every decision and warning recorded while loading.</summary>
     public PdfDiagnostics Diagnostics { get; }
@@ -139,8 +144,8 @@ public sealed class PdfProofDocument
         var applyClipping = (options?.Layout ?? LayoutOptions.Default).ApplyClipping;
         using var document = PdfPigCall.Read(() => PdfDocument.Open(pdf, new ParsingOptions { ClipPaths = applyClipping }));
         // PdfPig returns the raw values; mapping them to PdfMetadata happens outside PdfPigCall.
-        var raw = PdfPigCall.Read(() => (document.Version, document.NumberOfPages, document.Information));
-        var metadata = MetadataReader.Read(raw.Version.ToString("0.0", CultureInfo.InvariantCulture), raw.NumberOfPages, raw.Information);
+        var info = PdfPigCall.Read(() => (document.Version, document.NumberOfPages, document.Information));
+        var metadata = MetadataReader.Read(info.Version.ToString("0.0", CultureInfo.InvariantCulture), info.NumberOfPages, info.Information);
 
         var detected = options is null;
         var effective = options ?? PdfProofOptions.ForProfile(ProducerProfiles.Detect(metadata.Producer, metadata.Creator));
@@ -150,11 +155,64 @@ public sealed class PdfProofDocument
             null,
             detected ? $"{effective.Profile} (detected from producer \"{metadata.Producer}\")" : $"{effective.Profile} (from options)");
 
-        var layout = LayoutBuilder.Build(document, effective.Layout, diagnostics);
+        var raw = ReadStructure(document, diagnostics);
+        var tagged = raw.Elements.Count > 0;
+        var layoutResult = LayoutBuilder.Build(document, effective.Layout, diagnostics, collectMarkedText: tagged);
+        var layout = layoutResult.Model;
         if (layout.Pages.Count > 0 && layout.Pages.All(page => page.Blocks.Count == 0))
         {
             diagnostics.Add(PdfDiagnosticCodes.NoTextLayer, null, "No page has extractable text; the PDF may be a scan. OCR is not supported.");
         }
-        return new PdfProofDocument(metadata, layout, diagnostics.ToDiagnostics(effective.Profile, detected));
+
+        var structure = tagged ? StructureBuilder.Build(raw, layoutResult, effective.Layout) : StructureModel.Untagged;
+        if (structure.IsTagged)
+        {
+            diagnostics.Add(PdfDiagnosticCodes.Structure, null, $"{structure.Root.Descendants().Count()} elements");
+        }
+
+        if (raw.SkippedStreamContent)
+        {
+            diagnostics.Add(
+                PdfDiagnosticCodes.StructureIncomplete,
+                null,
+                "Marked content inside form XObjects or annotations (/Stm) is not supported and is left out; the text of page marked content with the same MCID may include it.");
+        }
+
+        if (raw.Truncated)
+        {
+            diagnostics.Add(PdfDiagnosticCodes.StructureIncomplete, null, "Elements nested deeper than 256 levels are left out.");
+        }
+
+        if (raw.HasStructTreeRoot || raw.Marked)
+        {
+            if (raw.Marked && !structure.IsTagged)
+            {
+                diagnostics.Add(PdfDiagnosticCodes.MarkInfoMismatch, null, "/MarkInfo sets /Marked true, but the document has no structure tree with elements.");
+            }
+            else if (!raw.Marked && structure.IsTagged)
+            {
+                diagnostics.Add(PdfDiagnosticCodes.MarkInfoMismatch, null, "The document has a structure tree, but /MarkInfo doesn't set /Marked true.");
+            }
+        }
+
+        return new PdfProofDocument(metadata, layout, structure, diagnostics.ToDiagnostics(effective.Profile, detected));
+    }
+
+    // The structure tree is secondary to page content: a tree the parser rejects is reported and left out, and the
+    // document still loads.
+    private static RawStructure ReadStructure(PdfDocument document, DiagnosticsCollector diagnostics)
+    {
+        try
+        {
+            return PdfPigCall.Read(() => StructureTreeReader.Read(document));
+        }
+        catch (PdfProofException ex)
+        {
+            diagnostics.Add(
+                PdfDiagnosticCodes.StructureUnreadable,
+                null,
+                "The structure tree could not be read and is left out: " + (ex.InnerException ?? ex).Message);
+            return RawStructure.None;
+        }
     }
 }
