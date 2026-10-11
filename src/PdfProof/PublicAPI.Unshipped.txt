@@ -205,3 +205,4 @@ PdfProof.Structure.StructureObjectReference.Type.get -> string!
 PdfProof.Structure.StructureText
 PdfProof.Structure.StructureText.MarkedContentId.get -> int
 PdfProof.Structure.StructureText.Text.get -> string!
+const PdfProof.PdfDiagnosticCodes.Structure = "Structure" -> string!

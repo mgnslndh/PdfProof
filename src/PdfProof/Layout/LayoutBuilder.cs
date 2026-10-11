@@ -13,18 +13,24 @@ namespace PdfProof.Layout;
 // PdfPig goes through PdfPigCall.
 internal static class LayoutBuilder
 {
-    public static LayoutModel Build(PdfDocument document, LayoutOptions options, DiagnosticsCollector diagnostics)
+    public static LayoutBuildResult Build(PdfDocument document, LayoutOptions options, DiagnosticsCollector diagnostics, bool collectMarkedText)
     {
         var pageCount = PdfPigCall.Read(() => document.NumberOfPages);
         var pages = new List<LayoutPage>(pageCount);
+        var markedText = new Dictionary<int, IReadOnlyDictionary<int, string>>();
         for (var number = 1; number <= pageCount; number++)
         {
             var pageNumber = number;
             var page = PdfPigCall.Read(() => document.GetPage(pageNumber), pageNumber);
             pages.Add(BuildPage(page, pageNumber, options, diagnostics));
+            if (collectMarkedText)
+            {
+                var marked = PdfPigCall.Read(() => page.GetMarkedContents().ToList(), pageNumber);
+                markedText[pageNumber] = MarkedContentText.Collect(marked, options);
+            }
         }
 
-        return new LayoutModel(pages, Bookmarks(document, diagnostics));
+        return new LayoutBuildResult(new LayoutModel(pages, Bookmarks(document, diagnostics)), markedText);
     }
 
     private static LayoutPage BuildPage(Page page, int number, LayoutOptions options, DiagnosticsCollector diagnostics)

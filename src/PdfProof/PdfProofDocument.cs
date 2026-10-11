@@ -144,8 +144,8 @@ public sealed class PdfProofDocument
         var applyClipping = (options?.Layout ?? LayoutOptions.Default).ApplyClipping;
         using var document = PdfPigCall.Read(() => PdfDocument.Open(pdf, new ParsingOptions { ClipPaths = applyClipping }));
         // PdfPig returns the raw values; mapping them to PdfMetadata happens outside PdfPigCall.
-        var raw = PdfPigCall.Read(() => (document.Version, document.NumberOfPages, document.Information));
-        var metadata = MetadataReader.Read(raw.Version.ToString("0.0", CultureInfo.InvariantCulture), raw.NumberOfPages, raw.Information);
+        var info = PdfPigCall.Read(() => (document.Version, document.NumberOfPages, document.Information));
+        var metadata = MetadataReader.Read(info.Version.ToString("0.0", CultureInfo.InvariantCulture), info.NumberOfPages, info.Information);
 
         var detected = options is null;
         var effective = options ?? PdfProofOptions.ForProfile(ProducerProfiles.Detect(metadata.Producer, metadata.Creator));
@@ -155,11 +155,21 @@ public sealed class PdfProofDocument
             null,
             detected ? $"{effective.Profile} (detected from producer \"{metadata.Producer}\")" : $"{effective.Profile} (from options)");
 
-        var layout = LayoutBuilder.Build(document, effective.Layout, diagnostics);
+        var raw = PdfPigCall.Read(() => StructureTreeReader.Read(document));
+        var tagged = raw.Elements.Count > 0;
+        var layoutResult = LayoutBuilder.Build(document, effective.Layout, diagnostics, collectMarkedText: tagged);
+        var layout = layoutResult.Model;
         if (layout.Pages.Count > 0 && layout.Pages.All(page => page.Blocks.Count == 0))
         {
             diagnostics.Add(PdfDiagnosticCodes.NoTextLayer, null, "No page has extractable text; the PDF may be a scan. OCR is not supported.");
         }
-        return new PdfProofDocument(metadata, layout, StructureModel.Untagged, diagnostics.ToDiagnostics(effective.Profile, detected));
+
+        var structure = tagged ? StructureBuilder.Build(raw, layoutResult, effective.Layout) : StructureModel.Untagged;
+        if (structure.IsTagged)
+        {
+            diagnostics.Add(PdfDiagnosticCodes.Structure, null, $"{structure.Root.Descendants().Count()} elements");
+        }
+
+        return new PdfProofDocument(metadata, layout, structure, diagnostics.ToDiagnostics(effective.Profile, detected));
     }
 }

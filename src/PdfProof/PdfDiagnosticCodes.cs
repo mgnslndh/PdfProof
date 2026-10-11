@@ -14,4 +14,7 @@ public static class PdfDiagnosticCodes
 
     /// <summary>The bookmarks (outline) could not be read and are left out; the pages are unaffected. Logged as a warning.</summary>
     public const string BookmarksUnreadable = "BookmarksUnreadable";
+
+    /// <summary>What the structure tree holds, for tagged documents.</summary>
+    public const string Structure = "Structure";
 }
