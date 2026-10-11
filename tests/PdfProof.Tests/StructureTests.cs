@@ -150,4 +150,56 @@ public sealed class StructureTests
         Assert.Equal(("Text", (int?)1), (reference.Type, reference.Page));
         Assert.Null(reference.Link);
     }
+
+    [Fact]
+    public void Alt_actual_text_and_language_are_read()
+    {
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(
+            RawPdf.Marked("Figure", 0, "q 40 0 0 40 50 600 cm /Im1 Do Q\n") +
+            RawPdf.Marked("Span", 1, RawPdf.Text(50, 500, "Pg.")));
+        var figure = pdf.Add($"<< /S /Figure /Pg {page} 0 R /K 0 /Alt (Company logo) >>");
+        var span = pdf.Add($"<< /S /Span /Pg {page} 0 R /K 1 /ActualText (Page) /Lang (en-US) >>");
+        pdf.Tag($"{figure} 0 R {span} 0 R");
+
+        var children = PdfProofDocument.Load(pdf.Build()).Structure.Root.Children;
+
+        Assert.Equal(("Figure", "Company logo", ""), (children[0].Role, children[0].Alt, children[0].Text));
+        Assert.Equal(("Page", "Page", "en-US"), (children[1].ActualText, children[1].Text, children[1].Language));
+    }
+
+    [Fact]
+    public void Table_attributes_scope_and_spans_are_read_from_the_attribute_objects()
+    {
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("TH", 0, RawPdf.Text(50, 750, "Amount")) + RawPdf.Marked("TD", 1, RawPdf.Text(50, 730, "9 900,00 SEK")));
+        var header = pdf.Add($"<< /S /TH /Pg {page} 0 R /K 0 /A << /O /Table /Scope /Column /ColSpan 2 >> >>");
+        var cell = pdf.Add($"<< /S /TD /Pg {page} 0 R /K 1 /A [<< /O /Layout /Placement /Block >> 0 << /O /Table /RowSpan 3 >> 0] >>");
+        var row = pdf.Add($"<< /S /TR /K [{header} 0 R {cell} 0 R] >>");
+        pdf.Tag($"{pdf.Add($"<< /S /Table /K [{row} 0 R] >>")} 0 R");
+
+        var cells = PdfProofDocument.Load(pdf.Build()).Structure.Root.Descendants().Where(n => n.Role is "TH" or "TD").ToList();
+
+        Assert.Equal(("Column", 1, 2), (cells[0].Scope, cells[0].RowSpan, cells[0].ColumnSpan));
+        Assert.Equal(((string?)null, 3, 1), (cells[1].Scope, cells[1].RowSpan, cells[1].ColumnSpan));
+    }
+
+    [Fact]
+    public void Artifacts_are_left_out_of_the_structure()
+    {
+        // Review Focus 4: running headers and page numbers are artifacts, both as elements and as marked content.
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(
+            RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Body text")) +
+            RawPdf.Artifact(RawPdf.Text(50, 30, "Page 1 of 1")) +
+            RawPdf.Marked("Footer", 1, RawPdf.Text(400, 30, "Confidential")));
+        var paragraph = pdf.Add($"<< /S /P /Pg {page} 0 R /K 0 >>");
+        var footer = pdf.Add($"<< /S /Footer /Pg {page} 0 R /K 1 >>");
+        pdf.Tag($"{paragraph} 0 R {footer} 0 R", "/RoleMap << /Footer /Artifact >>");
+
+        var structure = PdfProofDocument.Load(pdf.Build()).Structure;
+
+        var node = Assert.Single(structure.Root.Children);
+        Assert.Equal("Body text", node.Text);
+    }
 }

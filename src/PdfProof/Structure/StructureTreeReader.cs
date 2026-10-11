@@ -80,8 +80,48 @@ internal sealed class StructureTreeReader
     {
         var page = PageOf(element) ?? inheritedPage;
         var kids = Kids(element).Select(kid => ReadKid(kid, page, depth + 1)).OfType<RawKid>().ToList();
-        return new RawElement(role, page, null, null, null, null, 1, 1, kids);
+        var (scope, rowSpan, columnSpan) = TableAttributes(element);
+        return new RawElement(
+            role,
+            page,
+            Text(element, "Alt"),
+            Text(element, "ActualText"),
+            Text(element, "Lang"),
+            scope,
+            rowSpan,
+            columnSpan,
+            kids);
     }
+
+    // /A holds one attribute object or an array of them (optionally followed by revision numbers). Table attributes
+    // are those with /O /Table.
+    private (string? Scope, int RowSpan, int ColumnSpan) TableAttributes(DictionaryToken element)
+    {
+        string? scope = null;
+        var rowSpan = 1;
+        var columnSpan = 1;
+        var attributes = Resolve(Get(element, "A")) switch
+        {
+            DictionaryToken single => [single],
+            ArrayToken array => array.Data.Select(Resolve).OfType<DictionaryToken>().ToList(),
+            _ => new List<DictionaryToken>(),
+        };
+        foreach (var attribute in attributes.Where(a => Name(a, "O") == "Table"))
+        {
+            scope = Name(attribute, "Scope") ?? scope;
+            rowSpan = Resolve(Get(attribute, "RowSpan")) is NumericToken rows && rows.Int > 0 ? rows.Int : rowSpan;
+            columnSpan = Resolve(Get(attribute, "ColSpan")) is NumericToken columns && columns.Int > 0 ? columns.Int : columnSpan;
+        }
+
+        return (scope, rowSpan, columnSpan);
+    }
+
+    private string? Text(DictionaryToken dictionary, string key) => Resolve(Get(dictionary, key)) switch
+    {
+        StringToken text => text.Data,
+        HexToken hex => hex.Data,
+        _ => null,
+    };
 
     private RawObjectReference ObjectReference(DictionaryToken objr, int? elementPage)
     {

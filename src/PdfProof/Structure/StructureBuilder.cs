@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using PdfProof.Layout;
 
 namespace PdfProof.Structure;
@@ -6,6 +7,8 @@ namespace PdfProof.Structure;
 // PdfPigCall, so a bug here surfaces as itself.
 internal sealed class StructureBuilder
 {
+    private static readonly Regex Whitespace = new(@"\s+", RegexOptions.CultureInvariant);
+
     private readonly RawStructure _raw;
     private readonly LayoutBuildResult _layout;
     private readonly LayoutOptions _options;
@@ -27,6 +30,11 @@ internal sealed class StructureBuilder
     private StructureNode? Element(RawElement raw)
     {
         var role = MapRole(raw.Role);
+        if (role == "Artifact")
+        {
+            return null;
+        }
+
         var content = new List<StructureContent>();
         foreach (var kid in raw.Kids)
         {
@@ -36,8 +44,16 @@ internal sealed class StructureBuilder
             }
         }
 
-        return new StructureNode(role, raw.Role == role ? null : raw.Role, raw.Page, null, null, null, null, 1, 1, content);
+        var actualText = Normalize(raw.ActualText);
+        var alt = Normalize(raw.Alt);
+        var node = new StructureNode(role, raw.Role == role ? null : raw.Role, raw.Page, alt, actualText, raw.Language, raw.Scope, raw.RowSpan, raw.ColumnSpan, content);
+        return alt is not null && alt == node.Text
+            ? new StructureNode(role, node.CustomRole, raw.Page, null, actualText, raw.Language, raw.Scope, raw.RowSpan, raw.ColumnSpan, content) // some producers repeat the text as /Alt
+            : node;
     }
+
+    private string? Normalize(string? text) =>
+        text is null ? null : Whitespace.Replace(WordFactory.Normalize(text, _options), " ").Trim();
 
     private StructureContent? Content(RawKid kid) => kid switch
     {
