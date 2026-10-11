@@ -43,6 +43,7 @@ Both need extra PDF access that nothing in `0.1.0-alpha` uses.
   dotnet build src/PdfProof/PdfProof.csproj 2>&1 | sed -n "s/.*error RS0016: Symbol '\([^']*\)' is not part of the declared public API.*/\1/p" | sort -u >> src/PdfProof/PublicAPI.Unshipped.txt
   ```
   Then rebuild; expect 0 errors. Check that the appended lines are only the members you added.
+- **Throwing:** from Task 2 on, guard clauses and throws use the shared `Throw` helper (`Throw.IfNull`, `Throw.ArgumentException`, `Throw.UnreadablePdf`); never `ArgumentNullException.ThrowIfNull` or `throw new` for argument checks.
 - Deterministic output: invariant culture, explicit sort orders with tie-breakers.
 - Never write real company or customer names. Sample data is neutral ("Consulting, senior", `example.com`).
 - Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
@@ -342,15 +343,93 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 2: `PdfPigCall`: parser errors become `PdfProofException`, PdfProof bugs don't
+### Task 2: Shared `Throw` helper, and `PdfPigCall`: parser errors become `PdfProofException`, PdfProof bugs don't
 
 **Files:**
-- Create: `src/PdfProof/PdfPigCall.cs`, `tests/PdfProof.Tests/PdfPigCallTests.cs`
-- Modify: `src/PdfProof/PdfProofDocument.cs`
+- Create: `src/Shared/Throw/Throw.cs`, `src/Shared/Throw/Throw.PdfProof.cs`, `src/Directory.Build.props`, `src/PdfProof/PdfPigCall.cs`, `tests/PdfProof.Tests/PdfPigCallTests.cs`
+- Modify: `src/PdfProof/PdfProofDocument.cs`, `AGENTS.md`
 
 **Interfaces:**
 - Consumes: `MetadataReader.Read` (Task 1).
-- Produces: internal `PdfPigCall.Read<T>(Func<T> read, int? page = null) -> T`. Every later task routes PdfPig calls through it.
+- Produces:
+  - `internal static partial class PdfProof.Shared.Throw`, compiled into every project under `src/`, with `PdfProof.Shared` as an implicit using.
+    - `Throw.cs` holds the BCL helpers, from dotnet/extensions: `IfNull`, `IfNullOrEmpty`, `IfNullOrWhitespace`, `IfLessThan`/`IfGreaterThan`…, `ArgumentException(paramName, message)`, `ArgumentNullException`, `InvalidOperationException`, and the addition `FileNotFoundException(message, fileName)`.
+    - `Throw.PdfProof.cs` holds the repo helpers, starting with `UnreadablePdf(Exception parserError, int? page = null)`.
+  - Internal `PdfPigCall.Read<T>(Func<T> read, int? page = null) -> T`. Every later task routes PdfPig calls through it.
+  - **Convention from here on:** guard clauses and throws use `Throw` (`Throw.IfNull(x)`, not `ArgumentNullException.ThrowIfNull(x)` or `throw new …`). BCL helpers go in `Throw.cs`, PdfProof helpers in `Throw.PdfProof.cs`.
+
+- [ ] **Step 0: Add the shared `Throw` helper and switch existing guard clauses to it**
+
+1. Copy `Throw.cs` from dotnet/extensions at commit `453a10cdb8441807c5580fee682c6b5b7ec8f26f` (`src/Shared/Throw/Throw.cs`, MIT) into `src/Shared/Throw/Throw.cs`:
+   ```bash
+   mkdir -p src/Shared/Throw
+   curl -sfL https://raw.githubusercontent.com/dotnet/extensions/453a10cdb8441807c5580fee682c6b5b7ec8f26f/src/Shared/Throw/Throw.cs -o src/Shared/Throw/Throw.cs
+   ```
+   Then edit the copy:
+   - Below the two license lines, add `// Source: https://github.com/dotnet/extensions/blob/453a10cdb8441807c5580fee682c6b5b7ec8f26f/src/Shared/Throw/Throw.cs (MIT). Changes: namespace; FileNotFoundException added.`
+   - Change `namespace Microsoft.Shared.Diagnostics;` to `namespace PdfProof.Shared;`.
+   - Remove the UTF-8 BOM if present, and use LF line endings (`.editorconfig`).
+   - Add this method in the section with the other exception-throwing methods (next to `InvalidOperationException`), in the same style:
+     ```csharp
+         /// <summary>
+         /// Throws a <see cref="System.IO.FileNotFoundException"/>.
+         /// </summary>
+         /// <param name="message">A message that describes the error.</param>
+         /// <param name="fileName">The full name of the file that was not found.</param>
+     #if !NET6_0_OR_GREATER
+         [MethodImpl(MethodImplOptions.NoInlining)]
+     #endif
+         [DoesNotReturn]
+         public static void FileNotFoundException(string message, string fileName)
+             => throw new System.IO.FileNotFoundException(message, fileName);
+     ```
+
+2. `src/Shared/Throw/Throw.PdfProof.cs`:
+   ```csharp
+   using System.Diagnostics.CodeAnalysis;
+
+   namespace PdfProof.Shared;
+
+   // PdfProof-specific throw helpers. BCL helpers live in Throw.cs, which is kept close to its upstream copy so it
+   // can be shared with other repositories.
+   internal static partial class Throw
+   {
+       /// <summary>
+       /// Throws a <see cref="PdfProofException"/> for input the PDF parser could not read, naming the page when known.
+       /// </summary>
+       /// <param name="parserError">The parser's exception; kept as the inner exception.</param>
+       /// <param name="page">The page being read, when known.</param>
+       [DoesNotReturn]
+       public static void UnreadablePdf(Exception parserError, int? page = null)
+       {
+           var where = page is { } number ? $" (page {number})" : "";
+           throw new PdfProofException($"The input could not be read as a PDF{where}: {parserError.Message}", parserError);
+       }
+   }
+   ```
+
+3. `src/Directory.Build.props`:
+   ```xml
+   <Project>
+     <!-- The repository's settings, then what every library under src/ shares. -->
+     <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+     <ItemGroup>
+       <!-- Shared source (internal helpers such as Throw), compiled into each library. -->
+       <Compile Include="$(MSBuildThisFileDirectory)Shared/**/*.cs" LinkBase="Shared" />
+       <Using Include="PdfProof.Shared" />
+     </ItemGroup>
+   </Project>
+   ```
+
+4. Switch the existing guard clauses in `src/PdfProof/PdfProofDocument.cs` to `Throw`:
+   - every `ArgumentNullException.ThrowIfNull(x)` becomes `Throw.IfNull(x)`;
+   - `throw new ArgumentException("The path is empty.", nameof(path))` becomes `Throw.ArgumentException(nameof(path), "The path is empty.")`, and the directory case likewise;
+   - `throw new FileNotFoundException(…, path)` becomes `Throw.FileNotFoundException("The PDF file was not found.", path)`.
+
+5. Run: `dotnet test --project tests/PdfProof.Tests/PdfProof.Tests.csproj`
+   Expected: build succeeds with 0 warnings on netstandard2.0, net8.0 and net10.0 (`Throw.cs` compiles against Polyfill's attributes on netstandard2.0), and all tests pass. In particular `Null_input_throws_ArgumentNullException`, `An_empty_path_throws_ArgumentException` and `A_directory_path_throws_ArgumentException_that_says_so` pass unchanged, with the same parameter names and messages.
+
+   If the copied `Throw.cs` produces analyzer warnings under `TreatWarningsAsErrors`, for example a `CA`/`IDE` rule this repository enables and dotnet/extensions suppresses globally, add a file-level `#pragma warning disable <id>` with a one-line reason at the top of `Throw.cs` instead of changing its code. Ledger it as a ruling.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -442,8 +521,8 @@ internal static class PdfPigCall
         }
         catch (Exception ex) when (ex is not OutOfMemoryException and not PdfProofException)
         {
-            var where = page is { } number ? $" (page {number})" : "";
-            throw new PdfProofException($"The input could not be read as a PDF{where}: {ex.Message}", ex);
+            Throw.UnreadablePdf(ex, page);
+            throw; // unreachable: UnreadablePdf always throws
         }
     }
 }
@@ -864,7 +943,7 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The bytes can't be read as a PDF.</exception>
     public static PdfProofDocument Load(byte[] pdf)
     {
-        ArgumentNullException.ThrowIfNull(pdf);
+        Throw.IfNull(pdf);
         return Open(pdf, null);
     }
 
@@ -875,8 +954,8 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The bytes can't be read as a PDF.</exception>
     public static PdfProofDocument Load(byte[] pdf, PdfProofOptions options)
     {
-        ArgumentNullException.ThrowIfNull(pdf);
-        ArgumentNullException.ThrowIfNull(options);
+        Throw.IfNull(pdf);
+        Throw.IfNull(options);
         return Open(pdf, options);
     }
 
@@ -889,7 +968,7 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The content can't be read as a PDF.</exception>
     public static PdfProofDocument Load(Stream pdf)
     {
-        ArgumentNullException.ThrowIfNull(pdf);
+        Throw.IfNull(pdf);
         return Open(ReadToEnd(pdf), null);
     }
 
@@ -903,8 +982,8 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The content can't be read as a PDF.</exception>
     public static PdfProofDocument Load(Stream pdf, PdfProofOptions options)
     {
-        ArgumentNullException.ThrowIfNull(pdf);
-        ArgumentNullException.ThrowIfNull(options);
+        Throw.IfNull(pdf);
+        Throw.IfNull(options);
         return Open(ReadToEnd(pdf), options);
     }
 
@@ -916,7 +995,7 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The file can't be read as a PDF.</exception>
     public static PdfProofDocument Load(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
+        Throw.IfNull(path);
         return Open(ReadFile(path), null);
     }
 
@@ -929,8 +1008,8 @@ public sealed class PdfProofDocument
     /// <exception cref="PdfProofException">The file can't be read as a PDF.</exception>
     public static PdfProofDocument Load(string path, PdfProofOptions options)
     {
-        ArgumentNullException.ThrowIfNull(path);
-        ArgumentNullException.ThrowIfNull(options);
+        Throw.IfNull(path);
+        Throw.IfNull(options);
         return Open(ReadFile(path), options);
     }
 
@@ -947,17 +1026,17 @@ public sealed class PdfProofDocument
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            throw new ArgumentException("The path is empty.", nameof(path));
+            Throw.ArgumentException(nameof(path), "The path is empty.");
         }
 
         if (Directory.Exists(path))
         {
-            throw new ArgumentException($"The path is a directory, not a PDF file. Path: {path}", nameof(path));
+            Throw.ArgumentException(nameof(path), $"The path is a directory, not a PDF file. Path: {path}");
         }
 
         if (!File.Exists(path))
         {
-            throw new FileNotFoundException("The PDF file was not found.", path);
+            Throw.FileNotFoundException("The PDF file was not found.", path);
         }
 
         return File.ReadAllBytes(path);
@@ -1664,7 +1743,7 @@ public sealed class LayoutWordLine
     /// <param name="words">The line's words; must not be empty.</param>
     public LayoutWordLine(IReadOnlyList<LayoutWord> words)
     {
-        ArgumentNullException.ThrowIfNull(words);
+        Throw.IfNull(words);
         Words = words;
     }
 
@@ -1684,7 +1763,7 @@ public sealed class LayoutWordBlock
     /// <param name="lines">The block's lines; must not be empty.</param>
     public LayoutWordBlock(IReadOnlyList<LayoutWordLine> lines)
     {
-        ArgumentNullException.ThrowIfNull(lines);
+        Throw.IfNull(lines);
         Lines = lines;
     }
 
@@ -2959,6 +3038,7 @@ Add this rule to the `## Rules` list, after the TDD rule:
 ```markdown
 - **Test PDFs:** build them in code. Use `tests/PdfProof.Tests/RawPdf.cs` (raw PDF syntax: exact positions, clipping, rotation, annotations, outlines) or PdfPig's `PdfDocumentBuilder`. Don't commit generated PDF files.
 - **Calls into PdfPig** go through `PdfPigCall.Read`, so parser errors become `PdfProofException` and PdfProof bugs don't.
+- **Throwing:** guard clauses and throws use `Throw` (`src/Shared/Throw/`, namespace `PdfProof.Shared`, implicit in every `src/` project): `Throw.IfNull(x)`, `Throw.ArgumentException(…)`. BCL helpers go in `Throw.cs` (kept close to its dotnet/extensions upstream so it can be shared), PdfProof helpers in `Throw.PdfProof.cs`.
 ```
 
 - [ ] **Step 6: Run the whole build**
