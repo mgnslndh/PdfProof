@@ -7,7 +7,7 @@ public sealed class PdfDiagnostics
     {
         Profile = profile;
         ProfileDetected = profileDetected;
-        Entries = entries;
+        Entries = ReadOnly.List(entries);
     }
 
     /// <summary>The profile the document was loaded with.</summary>

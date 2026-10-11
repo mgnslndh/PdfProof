@@ -6,7 +6,7 @@ public sealed class LayoutBlock
     internal LayoutBlock(LayoutBox box, IReadOnlyList<LayoutLine> lines, LayoutOrientation orientation)
     {
         Box = box;
-        Lines = lines;
+        Lines = ReadOnly.List(lines);
         Orientation = orientation;
     }
 

@@ -1,8 +1,8 @@
-using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Actions;
 using UglyToad.PdfPig.Annotations;
 using UglyToad.PdfPig.Content;
+using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
 using UglyToad.PdfPig.Outline;
 using UglyToad.PdfPig.Util;
@@ -13,8 +13,6 @@ namespace PdfProof.Layout;
 // PdfPig goes through PdfPigCall.
 internal static class LayoutBuilder
 {
-    private static readonly Regex Whitespace = new(@"\s+", RegexOptions.CultureInvariant);
-
     public static LayoutModel Build(PdfDocument document, LayoutOptions options, DiagnosticsCollector diagnostics)
     {
         var pageCount = PdfPigCall.Read(() => document.NumberOfPages);
@@ -44,9 +42,10 @@ internal static class LayoutBuilder
         // Rotated text: the nearest-neighbour extractor understands orientation. The default extractor shreds
         // vertical text into single letters that get mixed into horizontal rows.
         var rotated = letters.Where(letter => letter.TextOrientation != TextOrientation.Horizontal).ToList();
+        var rotatedWords = new List<LayoutWord>();
         if (rotated.Count > 0)
         {
-            var rotatedWords = Words(PdfPigCall.Read(() => NearestNeighbourWordExtractor.Instance.GetWords(rotated).ToList(), number), options);
+            rotatedWords = Words(PdfPigCall.Read(() => NearestNeighbourWordExtractor.Instance.GetWords(rotated).ToList(), number), options);
             blocks.AddRange(RotatedText.Blocks(rotatedWords, options));
         }
 
@@ -58,7 +57,7 @@ internal static class LayoutBuilder
         var annotations = PdfPigCall.Read(() => page.GetAnnotations().ToList(), number);
         var links = annotations
             .Where(annotation => annotation.Type == AnnotationType.Link)
-            .Select(annotation => Link(annotation, letters, options))
+            .Select(annotation => Link(annotation, words, rotatedWords, options))
             .OrderByDescending(link => link.Box.Top).ThenBy(link => link.Box.Left).ThenBy(link => link.Uri, StringComparer.Ordinal)
             .ToList();
         var otherAnnotations = annotations
@@ -88,7 +87,7 @@ internal static class LayoutBuilder
             otherAnnotations);
     }
 
-    private static LayoutLink Link(Annotation annotation, IReadOnlyList<Letter> letters, LayoutOptions options)
+    private static LayoutLink Link(Annotation annotation, IReadOnlyList<LayoutWord> words, IReadOnlyList<LayoutWord> rotatedWords, LayoutOptions options)
     {
         string? uri = null;
         int? targetPage = null;
@@ -102,13 +101,39 @@ internal static class LayoutBuilder
                 break;
         }
 
+        // The text under the link is the words whose centre lies inside the link rectangle, in reading order and
+        // separated by spaces, so it reads like the page text: horizontal words row by row from the top, left to
+        // right, then rotated words.
         var rectangle = annotation.Rectangle;
-        var text = string.Concat(letters.Where(letter => Geometry.Contains(rectangle, letter.BoundingBox.Centroid)).Select(letter => letter.Value));
+        bool Inside(LayoutWord word) =>
+            Geometry.Contains(rectangle, new PdfPoint((word.Box.Left + word.Box.Right) / 2, (word.Box.Bottom + word.Box.Top) / 2));
+        var text = ReadingOrder(words.Where(Inside)).Concat(rotatedWords.Where(Inside)).Select(word => word.Text);
+
         return new LayoutLink(
-            Whitespace.Replace(WordFactory.Normalize(text, options), " ").Trim(),
+            string.Join(" ", text),
             uri,
             targetPage,
             Geometry.Round(Geometry.Bounds(rectangle), options.Decimals));
+    }
+
+    // Rows by baseline from the top (same tolerance as the Rows strategy), each row left to right.
+    private static IEnumerable<LayoutWord> ReadingOrder(IEnumerable<LayoutWord> words)
+    {
+        var rows = new List<List<LayoutWord>>();
+        foreach (var word in words.OrderByDescending(w => w.Baseline).ThenBy(w => w.Box.Left))
+        {
+            var row = rows.Count > 0 ? rows[rows.Count - 1] : null;
+            if (row is not null && Math.Abs(row[0].Baseline - word.Baseline) <= Math.Max(1.0, 0.3 * word.Size))
+            {
+                row.Add(word);
+            }
+            else
+            {
+                rows.Add([word]);
+            }
+        }
+
+        return rows.SelectMany(row => row.OrderBy(word => word.Box.Left));
     }
 
     private static List<LayoutWord> Words(IEnumerable<Word> words, LayoutOptions options)

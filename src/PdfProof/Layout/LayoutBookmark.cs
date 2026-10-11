@@ -8,7 +8,7 @@ public sealed class LayoutBookmark
         Title = title;
         PageNumber = pageNumber;
         Uri = uri;
-        Children = children;
+        Children = ReadOnly.List(children);
     }
 
     /// <summary>The bookmark's title.</summary>

@@ -9,12 +9,12 @@ public sealed class LayoutPage
         Width = width;
         Height = height;
         Rotation = rotation;
-        Blocks = blocks;
-        Lines = blocks.SelectMany(block => block.Lines).ToArray();
+        Blocks = ReadOnly.List(blocks);
+        Lines = ReadOnly.List(blocks.SelectMany(block => block.Lines));
         Text = string.Join("\n", Lines.Select(line => line.Text));
-        Links = links;
-        Images = images;
-        Annotations = annotations;
+        Links = ReadOnly.List(links);
+        Images = ReadOnly.List(images);
+        Annotations = ReadOnly.List(annotations);
     }
 
     /// <summary>The page number, starting at 1.</summary>

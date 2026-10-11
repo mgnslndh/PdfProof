@@ -5,8 +5,8 @@ public sealed class LayoutModel
 {
     internal LayoutModel(IReadOnlyList<LayoutPage> pages, IReadOnlyList<LayoutBookmark> bookmarks)
     {
-        Pages = pages;
-        Bookmarks = bookmarks;
+        Pages = ReadOnly.List(pages);
+        Bookmarks = ReadOnly.List(bookmarks);
     }
 
     /// <summary>The pages, in order.</summary>

@@ -8,7 +8,7 @@ public sealed class LayoutWordLine
     public LayoutWordLine(IReadOnlyList<LayoutWord> words)
     {
         Throw.IfNull(words);
-        Words = words;
+        Words = ReadOnly.List(words);
     }
 
     /// <summary>The line's words, in reading order.</summary>

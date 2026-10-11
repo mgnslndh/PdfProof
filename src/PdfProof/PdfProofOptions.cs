@@ -16,7 +16,11 @@ public sealed record PdfProofOptions
     public PdfProfile Profile { get; init; } = PdfProfile.Default;
 
     /// <summary>How text is extracted and grouped into the layout model.</summary>
-    public LayoutOptions Layout { get; init; } = LayoutOptions.Default;
+    public LayoutOptions Layout
+    {
+        get => _layout;
+        init => _layout = Throw.IfNull(value, nameof(Layout));
+    }
 
     /// <summary>Receives every diagnostic entry as it is recorded; <see langword="null"/> for no logging.</summary>
     public ILogger? Logger { get; init; }
@@ -24,4 +28,6 @@ public sealed record PdfProofOptions
     /// <summary>Complete options for a producer profile.</summary>
     /// <param name="profile">The producer profile.</param>
     public static PdfProofOptions ForProfile(PdfProfile profile) => new() { Profile = profile };
+
+    private readonly LayoutOptions _layout = LayoutOptions.Default;
 }

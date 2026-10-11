@@ -60,6 +60,24 @@ public sealed class PageContentTests
     }
 
     [Fact]
+    public void Link_text_is_the_words_under_the_link_in_reading_order_separated_by_spaces()
+    {
+        // Final review of Plan 2: link text built from raw letters lost the gap between "Read" and "more" (no
+        // space glyph is drawn) and kept content order ("World" drawn before "Hello").
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(
+            RawPdf.Text(50, 750, "Read") + RawPdf.Text(82, 750, "more") +
+            RawPdf.Text(82, 700, "World") + RawPdf.Text(50, 700, "Hello"));
+        pdf.Annotate(page, "<< /Type /Annot /Subtype /Link /Rect [45 745 120 765] /A << /S /URI /URI (https://example.com/more) >> >>");
+        pdf.Annotate(page, "<< /Type /Annot /Subtype /Link /Rect [45 695 130 715] /A << /S /URI /URI (https://example.com/hello) >> >>");
+
+        var layoutPage = PdfProofDocument.Load(pdf.Build()).Layout.Pages[0];
+
+        Assert.Equal(["Read more", "Hello World"], layoutPage.Links.Select(link => link.Text));
+        Assert.Equal(["Read more", "Hello World"], layoutPage.Lines.Select(line => line.Text));
+    }
+
+    [Fact]
     public void A_link_over_no_text_or_with_another_action_still_loads()
     {
         // Review Focus 5.

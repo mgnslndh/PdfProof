@@ -7,7 +7,7 @@ public sealed class LayoutLine
     {
         Text = text;
         Box = box;
-        Spans = spans;
+        Spans = ReadOnly.List(spans);
     }
 
     /// <summary>The line's text: its spans joined by single spaces.</summary>
