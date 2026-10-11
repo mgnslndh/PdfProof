@@ -178,6 +178,11 @@ public sealed class PdfProofDocument
                 "Marked content inside form XObjects or annotations (/Stm) is not supported and is left out; the text of page marked content with the same MCID may include it.");
         }
 
+        if (raw.Truncated)
+        {
+            diagnostics.Add(PdfDiagnosticCodes.StructureIncomplete, null, "Elements nested deeper than 256 levels are left out.");
+        }
+
         if (raw.HasStructTreeRoot || raw.Marked)
         {
             if (raw.Marked && !structure.IsTagged)

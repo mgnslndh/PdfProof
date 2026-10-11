@@ -15,6 +15,7 @@ internal sealed class StructureTreeReader
     private readonly Dictionary<IndirectReference, int> _pageNumbers = [];
     private readonly HashSet<IndirectReference> _visited = [];
     private bool _skippedStreamContent;
+    private bool _truncated;
 
     private StructureTreeReader(PdfDocument document)
     {
@@ -47,13 +48,14 @@ internal sealed class StructureTreeReader
 
         IndexPages(Get(catalog, "Pages"));
         var elements = Kids(root).Select(kid => ReadKid(kid, null, 0)).OfType<RawElement>().ToList();
-        return new RawStructure(true, marked, roleMap, elements, _skippedStreamContent);
+        return new RawStructure(true, marked, roleMap, elements, _skippedStreamContent, _truncated);
     }
 
     private RawKid? ReadKid(IToken kid, int? page, int depth)
     {
         if (depth > MaxDepth)
         {
+            _truncated = true;
             return null;
         }
 
@@ -72,7 +74,7 @@ internal sealed class StructureTreeReader
                 _skippedStreamContent = true;
                 return null;
             case DictionaryToken dictionary when Name(dictionary, "Type") == "MCR":
-                return Get(dictionary, "MCID") is NumericToken id ? new RawMarkedContent(PageOf(dictionary) ?? page, id.Int) : null;
+                return Resolve(Get(dictionary, "MCID")) is NumericToken id ? new RawMarkedContent(PageOf(dictionary) ?? page, id.Int) : null;
             case DictionaryToken dictionary when Name(dictionary, "Type") == "OBJR":
                 return ObjectReference(dictionary, page);
             case DictionaryToken dictionary when Name(dictionary, "S") is { } role:
@@ -172,11 +174,11 @@ internal sealed class StructureTreeReader
                 continue;
             }
 
-            if (Name(node, "Type") == "Page")
+            if (Resolve(Get(node, "Kids")) is not ArrayToken kids)
             {
-                ordered.Add(reference.Data);
+                ordered.Add(reference.Data); // a leaf is a page, with or without /Type /Page (as PdfPig counts them)
             }
-            else if (Resolve(Get(node, "Kids")) is ArrayToken kids)
+            else
             {
                 for (var i = kids.Data.Count - 1; i >= 0; i--)
                 {

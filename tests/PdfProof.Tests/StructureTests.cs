@@ -348,4 +348,67 @@ public sealed class StructureTests
 
         Assert.Equal("Body", PdfProofDocument.Load(pdf.Build()).Structure.Root.Children[0].Text);
     }
+
+    [Fact]
+    public void Elements_below_the_depth_limit_are_reported_as_left_out()
+    {
+        // Minor review finding: content below the depth limit disappeared without a trace.
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Deep")));
+        var current = pdf.Add($"<< /S /P /Pg {page} 0 R /K 0 >>");
+        for (var i = 0; i < 300; i++)
+        {
+            current = pdf.Add($"<< /S /Div /K [{current} 0 R] >>");
+        }
+
+        pdf.Tag($"{current} 0 R");
+
+        var doc = PdfProofDocument.Load(pdf.Build());
+
+        Assert.Contains(doc.Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.StructureIncomplete
+            && e.Message == "Elements nested deeper than 256 levels are left out.");
+    }
+
+    [Fact]
+    public void Alt_is_kept_when_it_equals_the_actual_text()
+    {
+        // Minor review finding: only an /Alt that repeats the marked text is dropped; with /ActualText set it stays.
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("Figure", 0, "q 40 0 0 40 50 600 cm /Im1 Do Q" + (char)10));
+        pdf.Tag($"{pdf.Add($"<< /S /Figure /Pg {page} 0 R /K 0 /Alt (Logo) /ActualText (Logo) >>")} 0 R");
+
+        var figure = PdfProofDocument.Load(pdf.Build()).Structure.Root.Children[0];
+
+        Assert.Equal(("Logo", "Logo"), (figure.Alt, figure.ActualText));
+    }
+
+    [Fact]
+    public void A_page_without_a_Type_entry_still_counts_so_later_pages_keep_their_numbers()
+    {
+        // Minor review finding: page-tree leaves without /Type /Page shifted the structure's page numbers.
+        var pdf = new RawPdf();
+        pdf.AddPage(RawPdf.Text(50, 750, "First"));
+        var second = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Second")));
+        pdf.Tag($"{pdf.Add($"<< /S /P /Pg {second} 0 R /K 0 >>")} 0 R");
+        var latin1 = System.Text.Encoding.GetEncoding("ISO-8859-1");
+        var text = latin1.GetString(pdf.Build());
+        var index = text.IndexOf("/Type /Page /Parent", StringComparison.Ordinal);
+        var withoutType = text.Substring(0, index) + new string(' ', "/Type /Page ".Length) + text.Substring(index + "/Type /Page ".Length);
+
+        var node = PdfProofDocument.Load(latin1.GetBytes(withoutType)).Structure.Root.Children[0];
+
+        Assert.Equal(((int?)2, "Second"), (node.Page, node.Text));
+    }
+
+    [Fact]
+    public void An_MCID_given_as_an_indirect_reference_is_resolved()
+    {
+        // Minor review finding: /MCID was read without resolving references.
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(RawPdf.Marked("P", 0, RawPdf.Text(50, 750, "Hello")));
+        var mcid = pdf.Add("0");
+        pdf.Tag($"{pdf.Add($"<< /S /P /K << /Type /MCR /Pg {page} 0 R /MCID {mcid} 0 R >> >>")} 0 R");
+
+        Assert.Equal("Hello", PdfProofDocument.Load(pdf.Build()).Structure.Root.Children[0].Text);
+    }
 }

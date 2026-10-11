@@ -47,7 +47,7 @@ internal sealed class StructureBuilder
         var actualText = Normalize(raw.ActualText);
         var alt = Normalize(raw.Alt);
         var node = new StructureNode(role, raw.Role == role ? null : raw.Role, raw.Page, alt, actualText, raw.Language, raw.Scope, raw.RowSpan, raw.ColumnSpan, content);
-        return alt is not null && alt == node.Text
+        return alt is not null && actualText is null && alt == node.Text
             ? new StructureNode(role, node.CustomRole, raw.Page, null, actualText, raw.Language, raw.Scope, raw.RowSpan, raw.ColumnSpan, content) // some producers repeat the text as /Alt
             : node;
     }

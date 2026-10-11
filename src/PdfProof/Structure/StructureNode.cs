@@ -72,12 +72,20 @@ public sealed class StructureNode : StructureContent
     /// <summary>All elements below this one, depth first in document order, not including this element.</summary>
     public IEnumerable<StructureNode> Descendants()
     {
-        foreach (var child in Children)
+        // An explicit stack keeps this linear in the number of elements, whatever the depth.
+        var pending = new Stack<StructureNode>();
+        for (var i = Children.Count - 1; i >= 0; i--)
         {
-            yield return child;
-            foreach (var descendant in child.Descendants())
+            pending.Push(Children[i]);
+        }
+
+        while (pending.Count > 0)
+        {
+            var node = pending.Pop();
+            yield return node;
+            for (var i = node.Children.Count - 1; i >= 0; i--)
             {
-                yield return descendant;
+                pending.Push(node.Children[i]);
             }
         }
     }
