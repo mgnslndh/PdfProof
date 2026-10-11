@@ -6,6 +6,7 @@ Setup(context => BuildParameters.Create(context));
 
 RegisterBuildTasks();
 RegisterTestTasks();
+RegisterCorpusTasks();
 RegisterPackTasks();
 RegisterDefaultTask();
 

@@ -12,6 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Build.Cake.Extensions.Corpus" />
+    <Using Include="Build.Cake.Extensions.Downloads" />
     <Using Include="Build.Cake.Extensions.Packaging" />
   </ItemGroup>
 
