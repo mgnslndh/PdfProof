@@ -20,7 +20,7 @@ The spec's first milestone (`0.1.0-alpha`, spec §11.5) is split into seven plan
 | Plan | Delivers |
 |---|---|
 | **1 Foundation (this plan)** | Repo settings, `PdfProofDocument.Load` + metadata, `PdfAssertionException` + xUnit proof (OQ-1), Cake build, packaging, CI, `AGENTS.md` |
-| 2 Layout model | Port of the spike's layout: letters → words → lines → blocks, `Rows`/`ReadingOrder`, rotation, clipping, normalization, links, images, fonts, options and profiles |
+| 2 Layout model | Port of the spike's layout: letters → words → lines → blocks, `Rows`/`ReadingOrder`, rotation, clipping, normalization, links, images, fonts, options and profiles. **Also decide which load errors become `PdfProofException`:** today `PdfProofDocument.Open` wraps every exception except `OutOfMemoryException`, so a bug in PdfProof itself would be reported as "the input could not be read as a PDF". Once page-by-page loading runs inside that `try`, wrap only parser errors (e.g. PdfPig's `PdfDocumentFormatException`, and whatever else PdfPig is shown to throw on bad input) and let programming errors through (review finding from Plan 1). |
 | 3 Structure model | `StructureModel` (empty root when untagged), structure tree reader, RoleMap, MCIDs, OBJR links |
 | 4 Fixture generator and corpus | `tools/PdfProof.FixtureGenerator`, the `invoice` document for each producer, `GenerateFixtures`/`FetchCorpus` Cake targets, the CI fixtures job, the corpus test matrix |
 | 5 Semantic passes | Candidate blocks, passes 0–7, `SemanticModel`, decision log |
