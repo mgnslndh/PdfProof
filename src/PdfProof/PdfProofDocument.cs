@@ -1,5 +1,6 @@
 using System.Globalization;
 using PdfProof.Layout;
+using PdfProof.Structure;
 using UglyToad.PdfPig;
 
 namespace PdfProof;
@@ -10,10 +11,11 @@ namespace PdfProof;
 /// </summary>
 public sealed class PdfProofDocument
 {
-    private PdfProofDocument(PdfMetadata metadata, LayoutModel layout, PdfDiagnostics diagnostics)
+    private PdfProofDocument(PdfMetadata metadata, LayoutModel layout, StructureModel structure, PdfDiagnostics diagnostics)
     {
         Metadata = metadata;
         Layout = layout;
+        Structure = structure;
         Diagnostics = diagnostics;
     }
 
@@ -22,6 +24,9 @@ public sealed class PdfProofDocument
 
     /// <summary>The geometry: pages, with text grouped into blocks, lines and spans.</summary>
     public LayoutModel Layout { get; }
+
+    /// <summary>The Tagged PDF structure tree; empty, with <see cref="StructureModel.IsTagged"/> false, when the PDF isn't tagged.</summary>
+    public StructureModel Structure { get; }
 
     /// <summary>The profile used and every decision and warning recorded while loading.</summary>
     public PdfDiagnostics Diagnostics { get; }
@@ -155,6 +160,6 @@ public sealed class PdfProofDocument
         {
             diagnostics.Add(PdfDiagnosticCodes.NoTextLayer, null, "No page has extractable text; the PDF may be a scan. OCR is not supported.");
         }
-        return new PdfProofDocument(metadata, layout, diagnostics.ToDiagnostics(effective.Profile, detected));
+        return new PdfProofDocument(metadata, layout, StructureModel.Untagged, diagnostics.ToDiagnostics(effective.Profile, detected));
     }
 }
