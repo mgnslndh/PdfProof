@@ -112,7 +112,7 @@ internal sealed class RawPdf
         var oblique = Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>");
         var image = AddStream(
             "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8",
-            "\u0000ÿÿ\u0000");
+            "\u0000\u00FF\u00FF\u0000");
         _resources = Add($"<< /Font << /F1 {regular} 0 R /F2 {bold} 0 R /F3 {oblique} 0 R >> /XObject << /Im1 {image} 0 R >> >>");
     }
 
@@ -1025,29 +1025,29 @@ namespace PdfProof.Tests;
 public sealed class TextNormalizerTests
 {
     [Theory]
-    [InlineData("e­mail", "e-mail")]
-    [InlineData("e‐mail", "e-mail")]
-    [InlineData("e‑mail", "e-mail")]
+    [InlineData("e\u00ADmail", "e-mail")]
+    [InlineData("e\u2010mail", "e-mail")]
+    [InlineData("e\u2011mail", "e-mail")]
     public void Soft_and_unicode_hyphens_become_a_hyphen_minus(string input, string expected) =>
         Assert.Equal(expected, TextNormalizer.Normalize(input));
 
     [Theory]
-    [InlineData("9 900,00")]
-    [InlineData("9 900,00")]
-    [InlineData("9 900,00")]
-    [InlineData("9 900,00")]
-    [InlineData("9 900,00")]
-    [InlineData("9　900,00")]
+    [InlineData("9\u00A0900,00")]
+    [InlineData("9\u2007900,00")]
+    [InlineData("9\u202F900,00")]
+    [InlineData("9\u2009900,00")]
+    [InlineData("9\u200A900,00")]
+    [InlineData("9\u3000900,00")]
     public void Special_spaces_become_a_space(string input) =>
         Assert.Equal("9 900,00", TextNormalizer.Normalize(input));
 
     [Fact]
     public void Zero_width_characters_are_removed() =>
-        Assert.Equal("Invoice", TextNormalizer.Normalize("In​vo‌‍i⁠ce﻿"));
+        Assert.Equal("Invoice", TextNormalizer.Normalize("In\u200Bvo\u200C\u200Di\u2060ce\uFEFF"));
 
     [Fact]
     public void Latin_ligatures_are_expanded() =>
-        Assert.Equal("office flow ffl", TextNormalizer.Normalize("oﬃce ﬂow ﬄ"));
+        Assert.Equal("office flow ffl", TextNormalizer.Normalize("o\uFB03ce \uFB02ow \uFB04"));
 
     [Fact]
     public void Ordinary_text_is_returned_unchanged() =>
@@ -1121,16 +1121,16 @@ internal static class TextNormalizer
         return false;
     }
 
-    private static bool IsHyphen(char c) => c is '­' or '‐' or '‑';
+    private static bool IsHyphen(char c) => c is '\u00AD' or '\u2010' or '\u2011';
 
     // No-break, en quad .. hair space (U+2000-U+200A), narrow no-break, medium mathematical and ideographic space.
     private static bool IsSpecialSpace(char c) =>
-        c is ' ' or (>= ' ' and <= ' ') or ' ' or ' ' or '　';
+        c is '\u00A0' or (>= '\u2000' and <= '\u200A') or '\u202F' or '\u205F' or '\u3000';
 
-    private static bool IsZeroWidth(char c) => c is '​' or '‌' or '‍' or '⁠' or '﻿';
+    private static bool IsZeroWidth(char c) => c is '\u200B' or '\u200C' or '\u200D' or '\u2060' or '\uFEFF';
 
     // Latin ligatures U+FB00-U+FB06 (ff, fi, fl, ffi, ffl, long st, st).
-    private static bool IsLigature(char c) => c is >= 'ﬀ' and <= 'ﬆ';
+    private static bool IsLigature(char c) => c is >= '\uFB00' and <= '\uFB06';
 }
 ```
 
@@ -1285,11 +1285,11 @@ public sealed class RowsLayoutTests
     [Fact]
     public void Soft_hyphens_are_normalized_unless_normalization_is_off()
     {
-        var pdf = Pdf(RawPdf.Text(50, 750, "e­mail"));
+        var pdf = Pdf(RawPdf.Text(50, 750, "e\u00ADmail"));
 
         Assert.Equal("e-mail", PdfProofDocument.Load(pdf).Layout.Pages[0].Text);
         var raw = PdfProofDocument.Load(pdf, PdfProofOptions.Default with { Layout = LayoutOptions.Default with { NormalizeText = false } });
-        Assert.Equal("e­mail", raw.Layout.Pages[0].Text);
+        Assert.Equal("e\u00ADmail", raw.Layout.Pages[0].Text);
     }
 
     [Fact]
@@ -1300,7 +1300,7 @@ public sealed class RowsLayoutTests
             Layout = LayoutOptions.Default with { TextReplacements = new Dictionary<string, string> { ["e-mail"] = "email" } },
         };
 
-        var doc = PdfProofDocument.Load(Pdf(RawPdf.Text(50, 750, "e­mail")), options);
+        var doc = PdfProofDocument.Load(Pdf(RawPdf.Text(50, 750, "e\u00ADmail")), options);
 
         Assert.Equal("email", doc.Layout.Pages[0].Text);
     }
