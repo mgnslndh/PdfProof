@@ -48,11 +48,22 @@ public sealed class PdfProofDocument
     /// <summary>Loads a PDF file.</summary>
     /// <param name="path">The path to the PDF file.</param>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is empty or whitespace, or names a directory.</exception>
     /// <exception cref="FileNotFoundException">The file doesn't exist.</exception>
     /// <exception cref="PdfProofException">The file can't be read as a PDF.</exception>
     public static PdfProofDocument Load(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("The path is empty.", nameof(path));
+        }
+
+        if (Directory.Exists(path))
+        {
+            throw new ArgumentException($"The path is a directory, not a PDF file. Path: {path}", nameof(path));
+        }
+
         if (!File.Exists(path))
         {
             throw new FileNotFoundException("The PDF file was not found.", path);

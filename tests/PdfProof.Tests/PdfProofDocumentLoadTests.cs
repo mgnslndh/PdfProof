@@ -110,6 +110,25 @@ public sealed class PdfProofDocumentLoadTests
         Assert.Equal(path, ex.FileName);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void An_empty_path_throws_ArgumentException(string path)
+    {
+        var ex = Assert.Throws<ArgumentException>(() => PdfProofDocument.Load(path));
+
+        Assert.Equal("path", ex.ParamName);
+    }
+
+    [Fact]
+    public void A_directory_path_throws_ArgumentException_that_says_so()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => PdfProofDocument.Load(Path.GetTempPath()));
+
+        Assert.Equal("path", ex.ParamName);
+        Assert.StartsWith("The path is a directory, not a PDF file.", ex.Message);
+    }
+
     [Fact]
     public void Null_input_throws_ArgumentNullException()
     {
