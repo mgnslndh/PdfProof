@@ -29,7 +29,7 @@ internal static class LayoutBuilder
         var horizontal = letters.Where(letter => letter.TextOrientation == TextOrientation.Horizontal).ToList();
         var words = Words(PdfPigCall.Read(() => DefaultWordExtractor.Instance.GetWords(horizontal).ToList(), number), options);
 
-        var strategy = LayoutStrategies.Rows;
+        var strategy = options.Strategy;
         var blocks = Blocks(strategy.Arrange(words, options), options);
 
         diagnostics.Add(

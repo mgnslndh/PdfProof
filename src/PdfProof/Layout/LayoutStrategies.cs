@@ -9,4 +9,10 @@ public static class LayoutStrategies
     /// pages interleave line by line.
     /// </summary>
     public static ILayoutStrategy Rows { get; } = new RowsLayoutStrategy();
+
+    /// <summary>
+    /// PdfPig's Docstrum segmentation and reading-order detection. Reads multi-column pages column by column;
+    /// tables come out column by column, and small content changes can regroup blocks.
+    /// </summary>
+    public static ILayoutStrategy ReadingOrder { get; } = new ReadingOrderLayoutStrategy();
 }

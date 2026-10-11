@@ -9,6 +9,9 @@ public sealed record LayoutOptions
     /// <summary>The default layout options.</summary>
     public static LayoutOptions Default { get; } = new();
 
+    /// <summary>How horizontal text is grouped into blocks and ordered. Default <see cref="LayoutStrategies.Rows"/>.</summary>
+    public ILayoutStrategy Strategy { get; init; } = LayoutStrategies.Rows;
+
     /// <summary>Decimals kept for coordinates and font sizes; absorbs floating-point noise. Default 1.</summary>
     public int Decimals { get; init; } = 1;
 

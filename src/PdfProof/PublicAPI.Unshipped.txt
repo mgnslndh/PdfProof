@@ -151,3 +151,6 @@ static PdfProof.Layout.LayoutBox.operator ==(PdfProof.Layout.LayoutBox left, Pdf
 static PdfProof.Layout.LayoutStrategies.Rows.get -> PdfProof.Layout.ILayoutStrategy!
 ~override PdfProof.Layout.LayoutBox.Equals(object obj) -> bool
 ~override PdfProof.Layout.LayoutBox.ToString() -> string
+PdfProof.Layout.LayoutOptions.Strategy.get -> PdfProof.Layout.ILayoutStrategy!
+PdfProof.Layout.LayoutOptions.Strategy.init -> void
+static PdfProof.Layout.LayoutStrategies.ReadingOrder.get -> PdfProof.Layout.ILayoutStrategy!
