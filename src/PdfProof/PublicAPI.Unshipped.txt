@@ -1,0 +1,20 @@
+#nullable enable
+PdfProof.PdfMetadata
+PdfProof.PdfMetadata.Author.get -> string?
+PdfProof.PdfMetadata.CreationDate.get -> System.DateTimeOffset?
+PdfProof.PdfMetadata.Creator.get -> string?
+PdfProof.PdfMetadata.Keywords.get -> string?
+PdfProof.PdfMetadata.ModifiedDate.get -> System.DateTimeOffset?
+PdfProof.PdfMetadata.PageCount.get -> int
+PdfProof.PdfMetadata.PdfVersion.get -> string!
+PdfProof.PdfMetadata.Producer.get -> string?
+PdfProof.PdfMetadata.Subject.get -> string?
+PdfProof.PdfMetadata.Title.get -> string?
+PdfProof.PdfProofDocument
+PdfProof.PdfProofDocument.Metadata.get -> PdfProof.PdfMetadata!
+PdfProof.PdfProofException
+PdfProof.PdfProofException.PdfProofException(string! message) -> void
+PdfProof.PdfProofException.PdfProofException(string! message, System.Exception? innerException) -> void
+static PdfProof.PdfProofDocument.Load(byte[]! pdf) -> PdfProof.PdfProofDocument!
+static PdfProof.PdfProofDocument.Load(string! path) -> PdfProof.PdfProofDocument!
+static PdfProof.PdfProofDocument.Load(System.IO.Stream! pdf) -> PdfProof.PdfProofDocument!
