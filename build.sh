@@ -3,4 +3,6 @@
 # build.ps1 does the same in PowerShell.
 set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec dotnet run --project "$script_dir/build/Build/Build.csproj" -- "$@"
+# Run from the repository root so dotnet uses this repository's global.json (SDK pin), wherever the caller is.
+# The subshell keeps the caller's directory unchanged, even if this script is sourced.
+(cd "$script_dir" && exec dotnet run --project "build/Build/Build.csproj" -- "$@")
