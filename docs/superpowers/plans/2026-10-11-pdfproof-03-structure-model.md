@@ -340,7 +340,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Interfaces:**
 - Produces, on `RawPdf`:
   - `static string Marked(string tag, int mcid, string body)`: wraps content in `/tag <</MCID n>> BDC … EMC`.
-  - `static string Artifact(string body)`: wraps content in `/Artifact BDC … EMC`.
+  - `static string Artifact(string body)`: wraps content in `/Artifact BMC … EMC`.
   - `int Tag(string kids, string rootEntries = "", bool marked = true)`: adds a `/StructTreeRoot` with the given `/K` array content, plus `/MarkInfo << /Marked true >>` when `marked`, and returns the root's object number.
 
 - [ ] **Step 1: Write the failing test**
@@ -390,8 +390,8 @@ In `tests/PdfProof.Tests/RawPdf.cs`, add after the `Text` method:
     public static string Marked(string tag, int mcid, string body) =>
         FormattableString.Invariant($"/{tag} <</MCID {mcid}>> BDC\n{body}EMC\n");
 
-    /// An artifact sequence (running header, page number): "/Artifact BDC ... EMC".
-    public static string Artifact(string body) => $"/Artifact BDC\n{body}EMC\n";
+    /// An artifact sequence (running header, page number): "/Artifact BMC ... EMC".
+    public static string Artifact(string body) => $"/Artifact BMC\n{body}EMC\n";
 
     /// Adds a /StructTreeRoot whose /K array holds `kids` (e.g. "12 0 R 13 0 R"), plus /MarkInfo /Marked true unless
     /// `marked` is false. Returns the root's object number.
