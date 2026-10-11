@@ -18,3 +18,165 @@ PdfProof.PdfProofException.PdfProofException(string! message, System.Exception? 
 static PdfProof.PdfProofDocument.Load(byte[]! pdf) -> PdfProof.PdfProofDocument!
 static PdfProof.PdfProofDocument.Load(string! path) -> PdfProof.PdfProofDocument!
 static PdfProof.PdfProofDocument.Load(System.IO.Stream! pdf) -> PdfProof.PdfProofDocument!
+PdfProof.PdfMetadata.Custom.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+PdfProof.Layout.LayoutOptions
+PdfProof.Layout.LayoutOptions.<Clone>$() -> PdfProof.Layout.LayoutOptions!
+PdfProof.Layout.LayoutOptions.Equals(PdfProof.Layout.LayoutOptions? other) -> bool
+PdfProof.Layout.LayoutOptions.LayoutOptions() -> void
+PdfProof.PdfDiagnostic
+PdfProof.PdfDiagnostic.Code.get -> string!
+PdfProof.PdfDiagnostic.Message.get -> string!
+PdfProof.PdfDiagnostic.Page.get -> int?
+PdfProof.PdfDiagnosticCodes
+PdfProof.PdfDiagnostics
+PdfProof.PdfDiagnostics.Entries.get -> System.Collections.Generic.IReadOnlyList<PdfProof.PdfDiagnostic!>!
+PdfProof.PdfDiagnostics.Profile.get -> PdfProof.PdfProfile
+PdfProof.PdfDiagnostics.ProfileDetected.get -> bool
+PdfProof.PdfProfile
+PdfProof.PdfProfile.Chromium = 4 -> PdfProof.PdfProfile
+PdfProof.PdfProfile.Default = 0 -> PdfProof.PdfProfile
+PdfProof.PdfProfile.QuestPdf = 2 -> PdfProof.PdfProfile
+PdfProof.PdfProfile.SelectPdf = 1 -> PdfProof.PdfProfile
+PdfProof.PdfProfile.Typst = 3 -> PdfProof.PdfProfile
+PdfProof.PdfProofDocument.Diagnostics.get -> PdfProof.PdfDiagnostics!
+PdfProof.PdfProofOptions
+PdfProof.PdfProofOptions.<Clone>$() -> PdfProof.PdfProofOptions!
+PdfProof.PdfProofOptions.Equals(PdfProof.PdfProofOptions? other) -> bool
+PdfProof.PdfProofOptions.Layout.get -> PdfProof.Layout.LayoutOptions!
+PdfProof.PdfProofOptions.Layout.init -> void
+PdfProof.PdfProofOptions.Logger.get -> Microsoft.Extensions.Logging.ILogger?
+PdfProof.PdfProofOptions.Logger.init -> void
+PdfProof.PdfProofOptions.PdfProofOptions() -> void
+PdfProof.PdfProofOptions.Profile.get -> PdfProof.PdfProfile
+PdfProof.PdfProofOptions.Profile.init -> void
+const PdfProof.PdfDiagnosticCodes.Layout = "Layout" -> string!
+const PdfProof.PdfDiagnosticCodes.NoTextLayer = "NoTextLayer" -> string!
+const PdfProof.PdfDiagnosticCodes.Profile = "Profile" -> string!
+override PdfProof.Layout.LayoutOptions.Equals(object? obj) -> bool
+override PdfProof.Layout.LayoutOptions.GetHashCode() -> int
+override PdfProof.Layout.LayoutOptions.ToString() -> string!
+override PdfProof.PdfDiagnostic.ToString() -> string!
+override PdfProof.PdfProofOptions.Equals(object? obj) -> bool
+override PdfProof.PdfProofOptions.GetHashCode() -> int
+override PdfProof.PdfProofOptions.ToString() -> string!
+static PdfProof.Layout.LayoutOptions.Default.get -> PdfProof.Layout.LayoutOptions!
+static PdfProof.Layout.LayoutOptions.operator !=(PdfProof.Layout.LayoutOptions? left, PdfProof.Layout.LayoutOptions? right) -> bool
+static PdfProof.Layout.LayoutOptions.operator ==(PdfProof.Layout.LayoutOptions? left, PdfProof.Layout.LayoutOptions? right) -> bool
+static PdfProof.PdfProofDocument.Load(System.IO.Stream! pdf, PdfProof.PdfProofOptions! options) -> PdfProof.PdfProofDocument!
+static PdfProof.PdfProofDocument.Load(byte[]! pdf, PdfProof.PdfProofOptions! options) -> PdfProof.PdfProofDocument!
+static PdfProof.PdfProofDocument.Load(string! path, PdfProof.PdfProofOptions! options) -> PdfProof.PdfProofDocument!
+static PdfProof.PdfProofOptions.Default.get -> PdfProof.PdfProofOptions!
+static PdfProof.PdfProofOptions.ForProfile(PdfProof.PdfProfile profile) -> PdfProof.PdfProofOptions!
+static PdfProof.PdfProofOptions.operator !=(PdfProof.PdfProofOptions? left, PdfProof.PdfProofOptions? right) -> bool
+static PdfProof.PdfProofOptions.operator ==(PdfProof.PdfProofOptions? left, PdfProof.PdfProofOptions? right) -> bool
+PdfProof.Layout.ILayoutStrategy
+PdfProof.Layout.ILayoutStrategy.Arrange(System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutWord!>! words, PdfProof.Layout.LayoutOptions! options) -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutWordBlock!>!
+PdfProof.Layout.ILayoutStrategy.Name.get -> string!
+PdfProof.Layout.LayoutBlock
+PdfProof.Layout.LayoutBlock.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutBlock.Lines.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutLine!>!
+PdfProof.Layout.LayoutBlock.Orientation.get -> PdfProof.Layout.LayoutOrientation
+PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutBox.Bottom.get -> double
+PdfProof.Layout.LayoutBox.Bottom.init -> void
+PdfProof.Layout.LayoutBox.Deconstruct(out double Left, out double Bottom, out double Right, out double Top) -> void
+PdfProof.Layout.LayoutBox.Equals(PdfProof.Layout.LayoutBox other) -> bool
+PdfProof.Layout.LayoutBox.Height.get -> double
+PdfProof.Layout.LayoutBox.LayoutBox() -> void
+PdfProof.Layout.LayoutBox.LayoutBox(double Left, double Bottom, double Right, double Top) -> void
+PdfProof.Layout.LayoutBox.Left.get -> double
+PdfProof.Layout.LayoutBox.Left.init -> void
+PdfProof.Layout.LayoutBox.Right.get -> double
+PdfProof.Layout.LayoutBox.Right.init -> void
+PdfProof.Layout.LayoutBox.Top.get -> double
+PdfProof.Layout.LayoutBox.Top.init -> void
+PdfProof.Layout.LayoutBox.Width.get -> double
+PdfProof.Layout.LayoutLine
+PdfProof.Layout.LayoutLine.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutLine.Spans.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutSpan!>!
+PdfProof.Layout.LayoutLine.Text.get -> string!
+PdfProof.Layout.LayoutModel
+PdfProof.Layout.LayoutModel.Pages.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutPage!>!
+PdfProof.Layout.LayoutOptions.BlockGapFactor.get -> double
+PdfProof.Layout.LayoutOptions.BlockGapFactor.init -> void
+PdfProof.Layout.LayoutOptions.ColumnGapFactor.get -> double
+PdfProof.Layout.LayoutOptions.ColumnGapFactor.init -> void
+PdfProof.Layout.LayoutOptions.Decimals.get -> int
+PdfProof.Layout.LayoutOptions.Decimals.init -> void
+PdfProof.Layout.LayoutOptions.NormalizeText.get -> bool
+PdfProof.Layout.LayoutOptions.NormalizeText.init -> void
+PdfProof.Layout.LayoutOptions.TextReplacements.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+PdfProof.Layout.LayoutOptions.TextReplacements.init -> void
+PdfProof.Layout.LayoutOrientation
+PdfProof.Layout.LayoutOrientation.Horizontal = 0 -> PdfProof.Layout.LayoutOrientation
+PdfProof.Layout.LayoutOrientation.Other = 4 -> PdfProof.Layout.LayoutOrientation
+PdfProof.Layout.LayoutOrientation.Rotate180 = 2 -> PdfProof.Layout.LayoutOrientation
+PdfProof.Layout.LayoutOrientation.Rotate270 = 3 -> PdfProof.Layout.LayoutOrientation
+PdfProof.Layout.LayoutOrientation.Rotate90 = 1 -> PdfProof.Layout.LayoutOrientation
+PdfProof.Layout.LayoutPage
+PdfProof.Layout.LayoutPage.Blocks.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutBlock!>!
+PdfProof.Layout.LayoutPage.Height.get -> double
+PdfProof.Layout.LayoutPage.Lines.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutLine!>!
+PdfProof.Layout.LayoutPage.Number.get -> int
+PdfProof.Layout.LayoutPage.Rotation.get -> int
+PdfProof.Layout.LayoutPage.Text.get -> string!
+PdfProof.Layout.LayoutPage.Width.get -> double
+PdfProof.Layout.LayoutSpan
+PdfProof.Layout.LayoutSpan.Color.get -> string!
+PdfProof.Layout.LayoutSpan.Font.get -> string?
+PdfProof.Layout.LayoutSpan.IsBold.get -> bool
+PdfProof.Layout.LayoutSpan.IsItalic.get -> bool
+PdfProof.Layout.LayoutSpan.Size.get -> double
+PdfProof.Layout.LayoutSpan.Text.get -> string!
+PdfProof.Layout.LayoutStrategies
+PdfProof.Layout.LayoutWord
+PdfProof.Layout.LayoutWord.Baseline.get -> double
+PdfProof.Layout.LayoutWord.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutWord.Color.get -> string!
+PdfProof.Layout.LayoutWord.Font.get -> string?
+PdfProof.Layout.LayoutWord.IsBold.get -> bool
+PdfProof.Layout.LayoutWord.IsItalic.get -> bool
+PdfProof.Layout.LayoutWord.Size.get -> double
+PdfProof.Layout.LayoutWord.Text.get -> string!
+PdfProof.Layout.LayoutWordBlock
+PdfProof.Layout.LayoutWordBlock.LayoutWordBlock(System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutWordLine!>! lines) -> void
+PdfProof.Layout.LayoutWordBlock.Lines.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutWordLine!>!
+PdfProof.Layout.LayoutWordLine
+PdfProof.Layout.LayoutWordLine.LayoutWordLine(System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutWord!>! words) -> void
+PdfProof.Layout.LayoutWordLine.Words.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutWord!>!
+PdfProof.PdfProofDocument.Layout.get -> PdfProof.Layout.LayoutModel!
+override PdfProof.Layout.LayoutBox.GetHashCode() -> int
+static PdfProof.Layout.LayoutBox.operator !=(PdfProof.Layout.LayoutBox left, PdfProof.Layout.LayoutBox right) -> bool
+static PdfProof.Layout.LayoutBox.operator ==(PdfProof.Layout.LayoutBox left, PdfProof.Layout.LayoutBox right) -> bool
+static PdfProof.Layout.LayoutStrategies.Rows.get -> PdfProof.Layout.ILayoutStrategy!
+~override PdfProof.Layout.LayoutBox.Equals(object obj) -> bool
+~override PdfProof.Layout.LayoutBox.ToString() -> string
+PdfProof.Layout.LayoutOptions.Strategy.get -> PdfProof.Layout.ILayoutStrategy!
+PdfProof.Layout.LayoutOptions.Strategy.init -> void
+static PdfProof.Layout.LayoutStrategies.ReadingOrder.get -> PdfProof.Layout.ILayoutStrategy!
+PdfProof.Layout.LayoutAnnotation
+PdfProof.Layout.LayoutAnnotation.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutAnnotation.Content.get -> string?
+PdfProof.Layout.LayoutAnnotation.Type.get -> string!
+PdfProof.Layout.LayoutImage
+PdfProof.Layout.LayoutImage.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutImage.PixelHeight.get -> int
+PdfProof.Layout.LayoutImage.PixelWidth.get -> int
+PdfProof.Layout.LayoutImage.Sha256.get -> string!
+PdfProof.Layout.LayoutLink
+PdfProof.Layout.LayoutLink.Box.get -> PdfProof.Layout.LayoutBox
+PdfProof.Layout.LayoutLink.TargetPage.get -> int?
+PdfProof.Layout.LayoutLink.Text.get -> string!
+PdfProof.Layout.LayoutLink.Uri.get -> string?
+PdfProof.Layout.LayoutOptions.ApplyClipping.get -> bool
+PdfProof.Layout.LayoutOptions.ApplyClipping.init -> void
+PdfProof.Layout.LayoutPage.Annotations.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutAnnotation!>!
+PdfProof.Layout.LayoutPage.Images.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutImage!>!
+PdfProof.Layout.LayoutPage.Links.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutLink!>!
+PdfProof.Layout.LayoutBookmark
+PdfProof.Layout.LayoutBookmark.Children.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutBookmark!>!
+PdfProof.Layout.LayoutBookmark.PageNumber.get -> int?
+PdfProof.Layout.LayoutBookmark.Title.get -> string!
+PdfProof.Layout.LayoutBookmark.Uri.get -> string?
+PdfProof.Layout.LayoutModel.Bookmarks.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Layout.LayoutBookmark!>!
+const PdfProof.PdfDiagnosticCodes.BookmarksUnreadable = "BookmarksUnreadable" -> string!
