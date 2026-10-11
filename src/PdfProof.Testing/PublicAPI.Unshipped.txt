@@ -1,0 +1,4 @@
+#nullable enable
+PdfProof.Testing.IAssertionException
+PdfProof.Testing.PdfAssertionException
+PdfProof.Testing.PdfAssertionException.PdfAssertionException(string! message) -> void

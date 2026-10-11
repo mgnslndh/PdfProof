@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>PdfProof</title>
+  <rect width="256" height="256" rx="56" fill="#14284B"/>
+  <g fill="none" stroke="#7F95BD" stroke-width="8">
+    <path d="M40 48H60M70 18V38M196 48H216M186 18V38M40 208H60M70 218V238M196 208H216M186 218V238"/>
+  </g>
+  <path d="M70 48H152L186 82V208H70Z" fill="#F7F9FC"/>
+  <path d="M152 48V82H186Z" fill="#C5D0E3"/>
+  <rect x="90" y="72" width="44" height="12" rx="6" fill="#9DAAC2"/>
+  <rect x="90" y="96" width="74" height="12" rx="6" fill="#9DAAC2"/>
+  <path id="ppi-check" d="M96 152L121 177L170 128" fill="none" stroke="#15965A" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
