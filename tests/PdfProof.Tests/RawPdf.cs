@@ -121,6 +121,22 @@ internal sealed class RawPdf
     public static string Text(double x, double y, string text, int size = 12, string font = "F1") =>
         FormattableString.Invariant($"BT /{font} {size} Tf {x} {y} Td ({Escape(text)}) Tj ET\n");
 
+    /// A marked-content sequence with an MCID, as a Tagged PDF writes it: "/P <</MCID 0>> BDC ... EMC".
+    public static string Marked(string tag, int mcid, string body) =>
+        FormattableString.Invariant($"/{tag} <</MCID {mcid}>> BDC\n{body}EMC\n");
+
+    /// An artifact sequence (running header, page number): "/Artifact BMC ... EMC".
+    public static string Artifact(string body) => $"/Artifact BMC\n{body}EMC\n";
+
+    /// Adds a /StructTreeRoot whose /K array holds `kids` (e.g. "12 0 R 13 0 R"), plus /MarkInfo /Marked true unless
+    /// `marked` is false. Returns the root's object number.
+    public int Tag(string kids, string rootEntries = "", bool marked = true)
+    {
+        var root = Add($"<< /Type /StructTreeRoot /K [{kids}] {rootEntries} >>");
+        CatalogEntries += $" /StructTreeRoot {root} 0 R" + (marked ? " /MarkInfo << /Marked true >>" : "");
+        return root;
+    }
+
     private static string Escape(string text) =>
         text.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
 }
