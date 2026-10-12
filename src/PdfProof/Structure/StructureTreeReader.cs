@@ -46,7 +46,10 @@ internal sealed class StructureTreeReader
             }
         }
 
-        IndexPages(Get(catalog, "Pages"));
+        foreach (var page in PdfObjects.PageNumbers(_document))
+        {
+            _pageNumbers[page.Key] = page.Value;
+        }
         var elements = Kids(root).Select(kid => ReadKid(kid, null, 0)).OfType<RawElement>().ToList();
         return new RawStructure(true, marked, roleMap, elements, _skippedStreamContent, _truncated);
     }
@@ -151,48 +154,6 @@ internal sealed class StructureTreeReader
     private int? AnnotationPage(DictionaryToken annotation) =>
         Get(annotation, "P") is IndirectReferenceToken reference && _pageNumbers.TryGetValue(reference.Data, out var number) ? number : null;
 
-    // Page objects in page-tree order, so /Pg references resolve to page numbers.
-    private void IndexPages(IToken? pages)
-    {
-        var ordered = new List<IndirectReference>();
-        var seen = new HashSet<IndirectReference>();
-        var stack = new Stack<IToken>();
-        if (pages is not null)
-        {
-            stack.Push(pages);
-        }
-
-        while (stack.Count > 0)
-        {
-            if (stack.Pop() is not IndirectReferenceToken reference || !seen.Add(reference.Data))
-            {
-                continue;
-            }
-
-            if (Resolve(reference) is not DictionaryToken node)
-            {
-                continue;
-            }
-
-            if (Resolve(Get(node, "Kids")) is not ArrayToken kids)
-            {
-                ordered.Add(reference.Data); // a leaf is a page, with or without /Type /Page (as PdfPig counts them)
-            }
-            else
-            {
-                for (var i = kids.Data.Count - 1; i >= 0; i--)
-                {
-                    stack.Push(kids.Data[i]); // reversed, so pages pop in document order
-                }
-            }
-        }
-
-        for (var i = 0; i < ordered.Count; i++)
-        {
-            _pageNumbers[ordered[i]] = i + 1;
-        }
-    }
-
     private int? PageOf(DictionaryToken dictionary) =>
         Get(dictionary, "Pg") is IndirectReferenceToken reference && _pageNumbers.TryGetValue(reference.Data, out var number) ? number : null;
 
@@ -207,18 +168,9 @@ internal sealed class StructureTreeReader
         };
     }
 
-    private IToken? Resolve(IToken? token)
-    {
-        for (var i = 0; i < 32 && token is IndirectReferenceToken reference; i++)
-        {
-            token = _document.Structure.GetObject(reference.Data)?.Data;
-        }
+    private IToken? Resolve(IToken? token) => PdfObjects.Resolve(_document, token);
 
-        return token;
-    }
-
-    private static IToken? Get(DictionaryToken dictionary, string key) =>
-        dictionary.Data.TryGetValue(key, out var value) ? value : null;
+    private static IToken? Get(DictionaryToken dictionary, string key) => PdfObjects.Get(dictionary, key);
 
     private string? Name(DictionaryToken dictionary, string key) =>
         Resolve(Get(dictionary, key)) is NameToken name ? name.Data : null;

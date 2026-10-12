@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- The generator is net10.0 only, so are its tests. -->
+    <TargetFrameworks>net10.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <ProjectReference Include="../../tools/PdfProof.FixtureGenerator/PdfProof.FixtureGenerator.csproj" />
+  </ItemGroup>
+
+</Project>

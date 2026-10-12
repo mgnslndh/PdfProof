@@ -22,7 +22,7 @@ public sealed class PageContentTests
     [Fact]
     public void Clipping_can_be_turned_off_for_diagnosis()
     {
-        var options = PdfProofOptions.Default with { Layout = LayoutOptions.Default with { ApplyClipping = false } };
+        var options = new PdfProofOptions { Profile = PdfProfile.Default with { Layout = LayoutOptions.Default with { ApplyClipping = false } } };
 
         var text = PdfProofDocument.Load(RowsLayoutTests.Pdf(ClippedContent), options).Layout.Pages[0].Text;
 
@@ -104,7 +104,7 @@ public sealed class PageContentTests
         Assert.Equal((2, 2), (image.PixelWidth, image.PixelHeight));
         Assert.Matches("^[0-9a-f]{16}$", image.Sha256);
 
-        var options = PdfProofOptions.Default with { Layout = LayoutOptions.Default with { ApplyClipping = false } };
+        var options = new PdfProofOptions { Profile = PdfProfile.Default with { Layout = LayoutOptions.Default with { ApplyClipping = false } } };
         Assert.Equal(2, PdfProofDocument.Load(pdf, options).Layout.Pages[0].Images.Count);
     }
 

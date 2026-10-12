@@ -3,7 +3,7 @@ namespace PdfProof.Layout;
 /// <summary>One page of the layout model.</summary>
 public sealed class LayoutPage
 {
-    internal LayoutPage(int number, double width, double height, int rotation, IReadOnlyList<LayoutBlock> blocks, IReadOnlyList<LayoutLink> links, IReadOnlyList<LayoutImage> images, IReadOnlyList<LayoutAnnotation> annotations)
+    internal LayoutPage(int number, double width, double height, int rotation, IReadOnlyList<LayoutBlock> blocks, IReadOnlyList<LayoutLink> links, IReadOnlyList<LayoutImage> images, IReadOnlyList<LayoutAnnotation> annotations, IReadOnlyList<LayoutFormField> formFields)
     {
         Number = number;
         Width = width;
@@ -15,6 +15,7 @@ public sealed class LayoutPage
         Links = ReadOnly.List(links);
         Images = ReadOnly.List(images);
         Annotations = ReadOnly.List(annotations);
+        FormFields = ReadOnly.List(formFields);
     }
 
     /// <summary>The page number, starting at 1.</summary>
@@ -46,4 +47,7 @@ public sealed class LayoutPage
 
     /// <summary>The page's other annotations (not links or form widgets), top to bottom, then left to right.</summary>
     public IReadOnlyList<LayoutAnnotation> Annotations { get; }
+
+    /// <summary>The page's form field widgets, top to bottom, then left to right, then by name.</summary>
+    public IReadOnlyList<LayoutFormField> FormFields { get; }
 }

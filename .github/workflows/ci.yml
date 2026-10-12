@@ -9,8 +9,37 @@ permissions:
   contents: read
 
 jobs:
+  fixtures:
+    # Renders the generated corpus with every producer. SelectPdf needs Windows; the build jobs on every OS test
+    # against these PDFs. Cached by the sources, the generator and the pinned producer versions.
+    name: fixtures
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - id: cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/corpus
+          key: fixtures-${{ hashFiles('corpus/generated/**', 'tools/**', 'Directory.Packages.props', 'global.json', 'build/Build.Cake.Extensions/Typst/TypstCli.cs', 'build/Build/Tasks/FixtureTasks.cs') }}
+      # --require-fixtures: a producer that is unavailable on the runner fails the job, so nothing incomplete is cached.
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: ./build.ps1 --target=GenerateFixtures --require-fixtures
+        shell: pwsh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fixtures
+          path: artifacts/corpus
+          if-no-files-found: error
+          retention-days: 7
+
   build:
     name: build (${{ matrix.os }})
+    needs: fixtures
     strategy:
       fail-fast: false
       matrix:
@@ -26,13 +55,22 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      # The same steps as a local run: build tests, build, tests (net48 + net10.0 on Windows), pack and package checks.
-      # Each platform starts the build with its own bootstrap, so CI exercises both.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: fixtures
+          path: artifacts/corpus
+      # The external corpus is pinned by SHA-256; the cache saves downloading it on every run.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/cache
+          key: external-${{ hashFiles('corpus/external/manifest.json') }}
+      # The same steps as a local run, without rendering: external corpus, build tests, build, tests (net48 + net10.0
+      # on Windows) with every fixture required, pack and package checks. Each platform uses its own bootstrap.
       - if: runner.os == 'Windows'
-        run: ./build.ps1
+        run: ./build.ps1 --skip-generate --require-fixtures
         shell: pwsh
       - if: runner.os != 'Windows'
-        run: ./build.sh
+        run: ./build.sh --skip-generate --require-fixtures
         shell: bash
       - if: runner.os == 'Windows'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

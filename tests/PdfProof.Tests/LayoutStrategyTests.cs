@@ -17,7 +17,7 @@ public sealed class LayoutStrategyTests
     [Fact]
     public void ReadingOrder_reads_two_columns_column_by_column()
     {
-        var options = PdfProofOptions.Default with { Layout = LayoutOptions.Default with { Strategy = LayoutStrategies.ReadingOrder } };
+        var options = new PdfProofOptions { Profile = PdfProfile.Default with { Layout = LayoutOptions.Default with { Strategy = LayoutStrategies.ReadingOrder } } };
 
         var texts = PdfProofDocument.Load(TwoColumns(), options).Layout.Pages[0].Lines.Select(l => l.Text).ToList();
 
@@ -30,7 +30,7 @@ public sealed class LayoutStrategyTests
     [Fact]
     public void A_custom_strategy_decides_the_blocks_and_is_named_in_diagnostics()
     {
-        var options = PdfProofOptions.Default with { Layout = LayoutOptions.Default with { Strategy = new OneBlockPerWord() } };
+        var options = new PdfProofOptions { Profile = PdfProfile.Default with { Layout = LayoutOptions.Default with { Strategy = new OneBlockPerWord() } } };
 
         var doc = PdfProofDocument.Load(RowsLayoutTests.Pdf(RawPdf.Text(50, 750, "Alpha Beta")), options);
 

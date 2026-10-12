@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Renders the generated corpus with every producer available here (spec §10.2). A build tool: not packed, and
+       net10.0 only, because its producers (Playwright, QuestPDF, SelectPdf) need modern .NET. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Select.HtmlToPdf.NetCore" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <!-- QuestPDF runs under its Community license, which covers this open-source repository. -->
+    <PackageReference Include="QuestPDF" />
+    <PackageReference Include="PDFsharp-MigraDoc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PdfProof.FixtureGenerator.Tests" />
+  </ItemGroup>
+
+</Project>

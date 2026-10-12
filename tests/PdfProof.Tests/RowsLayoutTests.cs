@@ -74,16 +74,19 @@ public sealed class RowsLayoutTests
         var pdf = Pdf(RawPdf.Text(50, 750, "e\u00ADmail", font: "F4"));
 
         Assert.Equal("e-mail", PdfProofDocument.Load(pdf).Layout.Pages[0].Text);
-        var raw = PdfProofDocument.Load(pdf, PdfProofOptions.Default with { Layout = LayoutOptions.Default with { NormalizeText = false } });
+        var raw = PdfProofDocument.Load(pdf, new PdfProofOptions { Profile = PdfProfile.Default with { Layout = LayoutOptions.Default with { NormalizeText = false } } });
         Assert.Equal("e\u00ADmail", raw.Layout.Pages[0].Text);
     }
 
     [Fact]
     public void Text_replacements_apply_after_normalization()
     {
-        var options = PdfProofOptions.Default with
+        var options = new PdfProofOptions
         {
-            Layout = LayoutOptions.Default with { TextReplacements = new Dictionary<string, string> { ["e-mail"] = "email" } },
+            Profile = PdfProfile.Default with
+            {
+                Layout = LayoutOptions.Default with { TextReplacements = new Dictionary<string, string> { ["e-mail"] = "email" } },
+            },
         };
 
         var doc = PdfProofDocument.Load(Pdf(RawPdf.Text(50, 750, "e\u00ADmail", font: "F4")), options);
@@ -96,9 +99,12 @@ public sealed class RowsLayoutTests
     {
         // Review Focus 3. The zero-width no-break space U+FEFF can't be written in WinAnsi, so remove the word's
         // only letter with a replacement instead: the word becomes empty after normalization.
-        var options = PdfProofOptions.Default with
+        var options = new PdfProofOptions
         {
-            Layout = LayoutOptions.Default with { TextReplacements = new Dictionary<string, string> { ["~"] = "" } },
+            Profile = PdfProfile.Default with
+            {
+                Layout = LayoutOptions.Default with { TextReplacements = new Dictionary<string, string> { ["~"] = "" } },
+            },
         };
 
         var page = PdfProofDocument.Load(Pdf(RawPdf.Text(50, 750, "~") + RawPdf.Text(50, 700, "Kept")), options).Layout.Pages[0];

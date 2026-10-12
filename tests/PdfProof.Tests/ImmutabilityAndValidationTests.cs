@@ -38,7 +38,7 @@ public sealed class ImmutabilityAndValidationTests
     public void Text_replacements_are_copied_so_later_changes_to_the_callers_dictionary_have_no_effect()
     {
         var replacements = new Dictionary<string, string> { ["Hello"] = "Hi" };
-        var options = PdfProofOptions.Default with { Layout = LayoutOptions.Default with { TextReplacements = replacements } };
+        var options = new PdfProofOptions { Profile = PdfProfile.Default with { Layout = LayoutOptions.Default with { TextReplacements = replacements } } };
         replacements["Hello"] = "Changed";
 
         var text = PdfProofDocument.Load(RowsLayoutTests.Pdf(RawPdf.Text(50, 750, "Hello")), options).Layout.Pages[0].Text;
@@ -92,12 +92,6 @@ public sealed class ImmutabilityAndValidationTests
 
         Assert.Equal("TextReplacements", ex.ParamName);
         Assert.StartsWith("Replacements apply to single words; a key must not contain whitespace.", ex.Message);
-    }
-
-    [Fact]
-    public void Null_layout_options_are_rejected()
-    {
-        Assert.Equal("Layout", Assert.Throws<ArgumentNullException>(() => PdfProofOptions.Default with { Layout = null! }).ParamName);
     }
 
     [Fact]
