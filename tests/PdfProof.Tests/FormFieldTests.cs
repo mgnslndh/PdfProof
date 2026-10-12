@@ -248,4 +248,10 @@ public sealed class FormFieldTests
         var warning = Assert.Single(doc.Diagnostics.Entries, e => e.Code == PdfDiagnosticCodes.FormFieldsUnreadable);
         Assert.Equal("The form fields could not be read and are left out: the field tree has a cycle.", warning.Message);
     }
+
+    [Fact]
+    public void An_unset_kind_is_unknown()
+    {
+        Assert.Equal(LayoutFormFieldKind.Unknown, default(LayoutFormFieldKind));
+    }
 }

@@ -46,22 +46,52 @@ public static class TypstCli
         var asset = AssetFor(os, RuntimeInformation.OSArchitecture);
         var archive = await download.GetAsync(Url(asset), asset.Sha256, cacheDirectory, asset.FileName);
         var folder = Path.Combine(Path.GetDirectoryName(archive)!, "extracted");
-        var executable = Path.Combine(folder, asset.Executable);
-        if (!File.Exists(executable))
+        ExtractOnce(archive, folder, (source, target) =>
         {
-            Directory.CreateDirectory(folder);
-            if (asset.FileName.EndsWith(".zip", StringComparison.Ordinal))
+            if (source.EndsWith(".zip", StringComparison.Ordinal))
             {
-                ZipFile.ExtractToDirectory(archive, folder, overwriteFiles: true);
+                ZipFile.ExtractToDirectory(source, target);
             }
             else
             {
                 // .tar.xz: the BCL reads tar but not xz, so the system tar extracts it.
-                Extract("tar", ["-xJf", archive, "-C", folder]);
+                Extract("tar", ["-xJf", source, "-C", target]);
             }
+        });
+        return Path.Combine(folder, asset.Executable);
+    }
+
+    // Extracts `archive` into `folder` unless a completed extraction is already there. The archive is extracted into a
+    // fresh folder, marked complete, and only then moved into place, so an interrupted extraction (a half-written
+    // executable) is never trusted by a later run; a folder without the marker is replaced.
+    public static void ExtractOnce(string archive, string folder, Action<string, string> extract)
+    {
+        const string Marker = ".extracted";
+        if (File.Exists(Path.Combine(folder, Marker)))
+        {
+            return;
         }
 
-        return executable;
+        var partial = $"{folder}.partial-{Guid.NewGuid():N}";
+        Directory.CreateDirectory(partial);
+        try
+        {
+            extract(archive, partial);
+            File.WriteAllText(Path.Combine(partial, Marker), "");
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+
+            Directory.Move(partial, folder);
+        }
+        finally
+        {
+            if (Directory.Exists(partial))
+            {
+                Directory.Delete(partial, recursive: true);
+            }
+        }
     }
 
     private static void Extract(string tool, IReadOnlyList<string> arguments)

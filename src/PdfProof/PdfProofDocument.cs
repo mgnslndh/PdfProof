@@ -160,7 +160,9 @@ public sealed class PdfProofDocument
                 null,
                 options.Password is null
                     ? "The PDF is encrypted; it opened without a password."
-                    : "The PDF is encrypted; it was opened with the password from the options.");
+                    // PdfPig doesn't say whether the password was needed: a PDF with only an owner password opens
+                    // with any password or none.
+                    : "The PDF is encrypted; it opened with the password given in the options, or needed none.");
         }
 
         var raw = ReadStructure(document, diagnostics);

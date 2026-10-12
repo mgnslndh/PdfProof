@@ -39,4 +39,13 @@ public sealed class MatrixVerdictTests
         Assert.Equal(MatrixOutcome.Fail, verdict.Outcome);
         Assert.Equal("typst now matches the oracle, but deviations.json still lists it (\"draws list bullets as text\"). Remove the entry.", verdict.Message);
     }
+
+    [Fact]
+    public void An_unreadable_fixture_fails_even_when_the_producer_has_a_known_deviation()
+    {
+        var verdict = MatrixVerdict.Of("typst", [], Known, loadError: "typst.pdf could not be loaded: truncated");
+
+        Assert.Equal(MatrixOutcome.Fail, verdict.Outcome);
+        Assert.Equal("typst: typst.pdf could not be loaded: truncated", verdict.Message);
+    }
 }

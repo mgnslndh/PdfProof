@@ -25,7 +25,8 @@ public sealed class PinnedDownload(HttpClient http)
         }
 
         Directory.CreateDirectory(folder);
-        var temporary = path + ".download";
+        // Unique per download, so builds sharing the cache never write the same temp file.
+        var temporary = $"{path}.{Guid.NewGuid():N}.download";
         try
         {
             using (var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))

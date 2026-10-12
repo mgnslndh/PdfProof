@@ -27,7 +27,8 @@ public sealed class GeneratedCorpusTests
         var sources = CorpusPaths.GeneratedDocument(document);
 
         var mismatches = new List<string>();
-        if (Fixtures.TryLoad(path, mismatches) is { } pdf)
+        var pdf = Fixtures.TryLoad(path, out var loadError);
+        if (pdf is not null)
         {
             if (pdf.Diagnostics.Profile.Name != producer.ExpectedProfile)
             {
@@ -43,7 +44,7 @@ public sealed class GeneratedCorpusTests
             mismatches.AddRange(OracleComparison.Compare(oracle, pdf, checkRoles: producer.Tagged && pdf.Structure.IsTagged));
         }
 
-        var verdict = MatrixVerdict.Of(producer.Name, mismatches, Deviations.Load(Path.Combine(sources, "deviations.json")));
+        var verdict = MatrixVerdict.Of(producer.Name, mismatches, Deviations.Load(Path.Combine(sources, "deviations.json")), loadError);
         TestContext.Current.TestOutputHelper?.WriteLine(verdict.Message);
         Assert.True(verdict.Outcome != MatrixOutcome.Fail, verdict.Message);
     }

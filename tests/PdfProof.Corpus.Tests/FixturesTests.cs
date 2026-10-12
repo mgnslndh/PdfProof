@@ -10,11 +10,9 @@ public sealed class FixturesTests
         File.WriteAllText(path, "%PDF-1.7\n1 0 obj\n<<");
         try
         {
-            var mismatches = new List<string>();
+            Assert.Null(Fixtures.TryLoad(path, out var error));
 
-            Assert.Null(Fixtures.TryLoad(path, mismatches));
-
-            Assert.StartsWith($"{path} could not be loaded: ", Assert.Single(mismatches));
+            Assert.StartsWith($"{path} could not be loaded: ", error);
         }
         finally
         {

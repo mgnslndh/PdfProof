@@ -23,16 +23,18 @@ internal static class Fixtures
         return path;
     }
 
-    // A fixture PdfProof can't read is a mismatch, so the case fails with the file and the error instead of crashing.
-    public static PdfProofDocument? TryLoad(string path, List<string> mismatches)
+    // A fixture PdfProof can't read gives the error instead of a document, so the case fails with the file and the
+    // error instead of crashing (MatrixVerdict fails it even when the producer has a known deviation).
+    public static PdfProofDocument? TryLoad(string path, out string? error)
     {
         try
         {
+            error = null;
             return PdfProofDocument.Load(path);
         }
         catch (PdfProofException ex)
         {
-            mismatches.Add($"{path} could not be loaded: {ex.Message}");
+            error = $"{path} could not be loaded: {ex.Message}";
             return null;
         }
     }

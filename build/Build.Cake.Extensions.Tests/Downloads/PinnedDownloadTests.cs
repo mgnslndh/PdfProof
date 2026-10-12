@@ -77,4 +77,17 @@ public sealed class PinnedDownloadTests : IDisposable
             return Task.FromResult(new HttpResponseMessage(status) { Content = new ByteArrayContent(body) });
         }
     }
+
+    [Fact]
+    public async Task Another_build_downloading_the_same_file_does_not_collide()
+    {
+        var sha = Sha(Body);
+        Directory.CreateDirectory(Path.Combine(_cache, sha));
+        // Another build's download in progress: its temp file is open and locked.
+        using var other = new FileStream(Path.Combine(_cache, sha, "a.pdf.download"), FileMode.Create, FileAccess.Write, FileShare.None);
+
+        var path = await new PinnedDownload(new HttpClient(new StubHandler(Body))).GetAsync(new Uri("https://example.com/a.pdf"), sha, _cache, "a.pdf");
+
+        Assert.Equal(Body, File.ReadAllBytes(path));
+    }
 }

@@ -18,7 +18,7 @@ public sealed class EncryptionTests
         var doc = PdfProofDocument.Load(pdf, new PdfProofOptions { Password = password });
 
         Assert.Equal("Confidential sample", doc.Layout.Pages[0].Text);
-        Assert.Contains(doc.Diagnostics.Entries, e => e.ToString() == "Encrypted: The PDF is encrypted; it was opened with the password from the options.");
+        Assert.Contains(doc.Diagnostics.Entries, e => e.ToString() == "Encrypted: The PDF is encrypted; it opened with the password given in the options, or needed none.");
     }
 
     [Fact]
@@ -96,5 +96,15 @@ public sealed class EncryptionTests
         var pdf = new RawPdf { Info = info };
         pdf.AddPage(RawPdf.Text(50, 750, "Confidential sample"));
         return pdf.Build();
+    }
+
+    [Fact]
+    public void An_owner_only_pdf_opened_with_a_password_does_not_claim_the_password_was_used()
+    {
+        var pdf = EncryptedPdf.Encrypt(Plain(), userPassword: null, "owner");
+
+        var doc = PdfProofDocument.Load(pdf, new PdfProofOptions { Password = "anything" });
+
+        Assert.Contains(doc.Diagnostics.Entries, e => e.ToString() == "Encrypted: The PDF is encrypted; it opened with the password given in the options, or needed none.");
     }
 }

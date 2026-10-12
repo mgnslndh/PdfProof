@@ -8,11 +8,18 @@ internal enum MatrixOutcome
 }
 
 // The outcome of one matrix case. A known deviation that starts passing fails until its entry is removed, so
-// deviations.json never hides a fixed gap (spec §10.2).
+// deviations.json never hides a fixed gap (spec §10.2). A fixture that can't be loaded always fails: a deviation
+// describes how a producer renders, not a broken file.
 internal sealed record MatrixVerdict(MatrixOutcome Outcome, string Message)
 {
-    public static MatrixVerdict Of(string producer, IReadOnlyList<string> mismatches, IReadOnlyDictionary<string, string> deviations)
+    public static MatrixVerdict Of(
+        string producer, IReadOnlyList<string> mismatches, IReadOnlyDictionary<string, string> deviations, string? loadError = null)
     {
+        if (loadError is not null)
+        {
+            return new MatrixVerdict(MatrixOutcome.Fail, $"{producer}: {loadError}");
+        }
+
         var known = deviations.TryGetValue(producer, out var reason);
         if (mismatches.Count == 0)
         {
