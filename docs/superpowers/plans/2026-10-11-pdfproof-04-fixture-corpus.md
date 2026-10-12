@@ -60,6 +60,15 @@
 - **Clipping and detection.** Clipping is a PdfPig parse option, read from the given profile (or `PdfProfile.Default`) before detection. Once presets differ in `ApplyClipping`, detection must read the info dictionary before the pages are parsed.
 - **Chromium's tagged output** wraps text in `NonStruct` elements. The structure front end has to look through them.
 
+**Deferred from the final review** (minor findings, recorded here so a later plan picks them up):
+
+| Finding | Where it belongs |
+|---|---|
+| A form field whose dictionary is also its widget and has no `/P` is left out (counted in the `FormFields` diagnostic). PdfPig gives no object reference to look up in the pages' `/Annots`. | The plan that adds the generated `form` document (spec §10.2) |
+| PdfPig skips form kids without `/Parent` silently; they aren't counted in the `FormFields` diagnostic. The token-level tree check could count them. | Same plan as above |
+| The oracle's artifact `"pages"` range is ignored: artifacts are checked on every page. Harmless for `invoice` (`"1-2"`), wrong for a narrower range. | Plan 5, when the comparison moves to full block lists |
+| A Typst error message can contain the generator's random temp path, which lands in `manifest.json`'s `reason` (not committed). | Whenever the generator is next touched; cosmetic |
+
 ## Global Constraints
 
 - Library target frameworks: `netstandard2.0;net8.0;net10.0`. Tests: `net48;net10.0` on Windows, `net10.0` elsewhere. Exceptions:
