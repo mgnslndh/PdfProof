@@ -1,4 +1,5 @@
 using PdfProof.Layout;
+using PdfProof.Semantics;
 
 namespace PdfProof;
 
@@ -55,9 +56,17 @@ public sealed record PdfProfile
         init => _layout = Throw.IfNull(value, nameof(Layout));
     }
 
+    /// <summary>How the semantic model is built.</summary>
+    public SemanticOptions Semantics
+    {
+        get => _semantics;
+        init => _semantics = Throw.IfNull(value, nameof(Semantics));
+    }
+
     /// <summary>The profile's name.</summary>
     public override string ToString() => Name;
 
     private readonly string _name = "";
     private readonly LayoutOptions _layout = LayoutOptions.Default;
+    private readonly SemanticOptions _semantics = SemanticOptions.Default;
 }
