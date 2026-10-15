@@ -39,6 +39,11 @@ internal static class SemanticBuilder
             ListDetector.Run(context);
         }
 
+        if (options.Links.Enabled)
+        {
+            LinkAttacher.Run(context);
+        }
+
         var source = declared ? SemanticSource.Declared : SemanticSource.Inferred;
         var model = Finalizer.Build(context, source);
         diagnostics.Add(
