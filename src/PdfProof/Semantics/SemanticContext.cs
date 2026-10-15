@@ -15,6 +15,10 @@ internal sealed class SemanticContext(LayoutBuildResult layout, SemanticOptions 
 
     public List<SemanticArtifact> Artifacts { get; } = [];
 
+    // Tagged documents: layout links the structure tree connects to an element (OBJR). LinkAttachment places the
+    // others by geometry, so a link a tagging producer left unconnected is not lost.
+    public HashSet<LayoutLink> ClaimedLinks { get; } = [];
+
     public List<(SemanticPass Pass, int? Page, Candidate? Candidate, string Message)> Decisions { get; } = [];
 
     public void Decide(SemanticPass pass, int? page, Candidate? candidate, string message)

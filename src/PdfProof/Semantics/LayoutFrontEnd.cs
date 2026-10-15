@@ -4,7 +4,9 @@ namespace PdfProof.Semantics;
 
 // Untagged documents (spec §6, row 0a): each layout block becomes one or more candidates. Lines on one baseline form a
 // row of cells. A block is split where font size, whole-line boldness or cell structure changes, where the gap between
-// rows is larger than ParagraphGapFactor font sizes, or after a short line (a one-line paragraph followed by another).
+// rows is larger than ParagraphGapFactor font sizes, or after a short line (a one-line paragraph followed by another):
+// a line ending before ShortLineRatio of its own block's width, so a ragged paragraph isn't measured against a wider
+// block elsewhere on the page.
 internal static class LayoutFrontEnd
 {
     public static List<Candidate> Build(SemanticContext context)
@@ -12,7 +14,6 @@ internal static class LayoutFrontEnd
         var candidates = new List<Candidate>();
         foreach (var page in context.Layout.Pages)
         {
-            var textRight = page.Lines.Count == 0 ? 0 : page.Lines.Max(line => line.Box.Right);
             for (var b = 0; b < page.Blocks.Count; b++)
             {
                 var block = page.Blocks[b];
@@ -20,7 +21,7 @@ internal static class LayoutFrontEnd
                 var current = new List<CandidateLine>();
                 foreach (var row in rows)
                 {
-                    if (current.Count > 0 && SplitReason(current[current.Count - 1], row, block.Box.Left, textRight, context.Options) is { } reason)
+                    if (current.Count > 0 && SplitReason(current[current.Count - 1], row, block.Box.Left, block.Box.Right, context.Options) is { } reason)
                     {
                         candidates.Add(new Candidate(page.Number, current, declared: false));
                         context.Decide(SemanticPass.LayoutFrontEnd, page.Number, null, $"block {b + 1}: split before \"{SemanticText.Excerpt(row.Text)}\": {reason}");

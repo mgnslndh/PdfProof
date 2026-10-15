@@ -6,7 +6,8 @@ namespace PdfProof.Semantics;
 // Tagged documents (spec §6, row 0b): structure elements become candidates with declared kinds. Containers are walked
 // through; inline content is folded into runs in content order. Producer quirks: Chromium wraps text in NonStruct,
 // QuestPDF puts a P inside every table cell and list item and its link annotations on the P, list labels are Lbl
-// elements. Tags are trusted: these candidates are not reclassified.
+// elements, and Typst writes a nested list beside its items (L > [LI, L, LI]). Tags are trusted: these candidates are
+// not reclassified. Each line gets the box of its marked content, so artifacts and links can be placed by position.
 internal static class StructureFrontEnd
 {
     private static readonly HashSet<string> Containers = new(StringComparer.Ordinal)
@@ -78,16 +79,18 @@ internal static class StructureFrontEnd
         : role.Length == 2 && role[0] == 'H' && role[1] >= '1' && role[1] <= '6' ? role[1] - '0'
         : null;
 
+    // A Link element at block level reads as a paragraph whose text is linked.
     private static Candidate? Text(StructureNode node, SemanticContext context, CandidateKind kind)
     {
         var pending = new List<LayoutLink>();
-        var runs = Runs(node, context, pending, null);
+        var runs = Runs(node, context, pending, node.Role == "Link" ? LinkOf(node, context) : null, skipLists: false);
         if (runs.Count == 0)
         {
             return null;
         }
 
-        var candidate = new Candidate(Page(node), [Line(runs)], declared: true) { Kind = kind };
+        var page = Page(node);
+        var candidate = new Candidate(page, [Line(runs, Box(node, context, page))], declared: true) { Kind = kind };
         candidate.PendingLinks.AddRange(pending);
         return candidate;
     }
@@ -107,30 +110,51 @@ internal static class StructureFrontEnd
         return list;
     }
 
-    // Each LI is an item. A nested list is flattened into the items after its parent item (nesting is Plan 5b).
+    // Each LI is an item. A nested list (nesting is Plan 5b) is flattened into the items: after its parent item when it
+    // is inside the item (LI > L, or LI > LBody > L), or in place when it sits beside the items (L > L, as Typst writes).
     private static void Items(StructureNode list, SemanticContext context, List<LayoutLink> pending, List<CandidateLine> items)
     {
-        foreach (var item in list.Children.Where(child => child.Role == "LI"))
+        foreach (var child in list.Children)
         {
-            var runs = Runs(item, context, pending, null);
-            if (runs.Count > 0)
+            if (child.Role == "LI")
             {
-                items.Add(Line(runs));
-            }
+                var runs = Runs(child, context, pending, null, skipLists: true);
+                if (runs.Count > 0)
+                {
+                    var page = Page(child);
+                    items.Add(Line(runs, Box(child, context, page)));
+                }
 
-            foreach (var nested in item.Children.Where(child => child.Role == "L"))
+                foreach (var nested in NestedLists(child))
+                {
+                    Flatten(nested, context, pending, items);
+                }
+            }
+            else if (child.Role == "L")
             {
-                context.Decide(SemanticPass.StructureFrontEnd, Page(nested), null, "a nested list is flattened into its parent list");
-                Items(nested, context, pending, items);
+                Flatten(child, context, pending, items);
             }
         }
     }
+
+    private static void Flatten(StructureNode nested, SemanticContext context, List<LayoutLink> pending, List<CandidateLine> items)
+    {
+        context.Decide(SemanticPass.StructureFrontEnd, Page(nested), null, "a nested list is flattened into its parent list");
+        Items(nested, context, pending, items);
+    }
+
+    private static IEnumerable<StructureNode> NestedLists(StructureNode item) =>
+        item.Children.SelectMany(child =>
+            child.Role == "L" ? [child]
+            : child.Role == "LBody" ? child.Children.Where(grandchild => grandchild.Role == "L")
+            : Enumerable.Empty<StructureNode>());
 
     private static Candidate? Table(StructureNode node, SemanticContext context)
     {
         var pending = new List<LayoutLink>();
         var rows = new List<(StructureNode Row, bool InHead)>();
         Rows(node, inHead: false, rows);
+        var page = Page(node);
         var lines = new List<CandidateLine>();
         var header = 0;
         foreach (var (row, inHead) in rows)
@@ -146,7 +170,9 @@ internal static class StructureFrontEnd
                 header = 1;
             }
 
-            lines.Add(new CandidateLine(cells.Select(cell => new CandidateCell(Runs(cell, context, pending, null), default)).ToList(), default, 0, false));
+            var candidateCells = cells.Select(cell => new CandidateCell(Runs(cell, context, pending, null, skipLists: false), Box(cell, context, page))).ToList();
+            var boxes = candidateCells.Select(cell => cell.Box).Where(box => box != default).ToList();
+            lines.Add(new CandidateLine(candidateCells, boxes.Count == 0 ? default : Geometry.Union(boxes), 0, false));
         }
 
         if (lines.Count == 0)
@@ -154,7 +180,7 @@ internal static class StructureFrontEnd
             return null;
         }
 
-        var table = new Candidate(Page(node), lines, declared: true) { Kind = CandidateKind.Table, HeaderRows = header };
+        var table = new Candidate(page, lines, declared: true) { Kind = CandidateKind.Table, HeaderRows = header };
         table.PendingLinks.AddRange(pending);
         return table;
     }
@@ -175,8 +201,10 @@ internal static class StructureFrontEnd
     }
 
     // The element's inline content as runs, in content order. A Link child gives its text the link from its OBJR; an
-    // OBJR link on another element is left for LinkAttachment. Lbl (list labels) and nested lists are left out.
-    private static IReadOnlyList<SemanticRun> Runs(StructureNode node, SemanticContext context, List<LayoutLink> pending, SemanticLink? link)
+    // OBJR link on another element is left for LinkAttachment. Both are claimed, so LinkAttachment doesn't place them a
+    // second time by geometry. Lbl (list labels) is left out; nested lists are left out of list items (they are
+    // flattened into the list) and folded in everywhere else, such as a list inside a table cell.
+    private static IReadOnlyList<SemanticRun> Runs(StructureNode node, SemanticContext context, List<LayoutLink> pending, SemanticLink? link, bool skipLists)
     {
         var pieces = new List<IReadOnlyList<SemanticRun>>();
         foreach (var content in node.Content)
@@ -187,13 +215,16 @@ internal static class StructureFrontEnd
                     var (bold, italic) = Style(context, text);
                     pieces.Add([new SemanticRun(text.Text, bold, italic, link)]);
                     break;
-                case StructureNode { Role: "Lbl" or "L" }:
+                case StructureNode { Role: "Lbl" }:
+                    break;
+                case StructureNode { Role: "L" } when skipLists:
                     break;
                 case StructureNode child:
-                    pieces.Add(Runs(child, context, pending, child.Role == "Link" ? LinkOf(child) ?? link : link));
+                    pieces.Add(Runs(child, context, pending, child.Role == "Link" ? LinkOf(child, context) ?? link : link, skipLists));
                     break;
                 case StructureObjectReference { Link: { } layoutLink } when node.Role != "Link":
                     pending.Add(layoutLink);
+                    context.ClaimedLinks.Add(layoutLink);
                     break;
             }
         }
@@ -202,16 +233,50 @@ internal static class StructureFrontEnd
     }
 
     private static (bool IsBold, bool IsItalic) Style(SemanticContext context, StructureText text) =>
-        text.Page is { } page && context.Build.MarkedText.TryGetValue(page, out var texts) && texts.TryGetValue(text.MarkedContentId, out var marked)
-            ? (marked.IsBold, marked.IsItalic)
-            : (false, false);
+        Marked(context, text) is { } marked ? (marked.IsBold, marked.IsItalic) : (false, false);
 
-    private static SemanticLink? LinkOf(StructureNode link) =>
-        link.Content.OfType<StructureObjectReference>().Select(reference => reference.Link).FirstOrDefault(found => found is not null) is { } found
-            ? new SemanticLink(found.Uri, found.TargetPage)
+    private static MarkedText? Marked(SemanticContext context, StructureText text) =>
+        text.Page is { } page && context.Build.MarkedText.TryGetValue(page, out var texts) && texts.TryGetValue(text.MarkedContentId, out var marked)
+            ? marked
             : null;
 
-    private static CandidateLine Line(IReadOnlyList<SemanticRun> runs) => new([new CandidateCell(runs, default)], default, 0, false);
+    private static SemanticLink? LinkOf(StructureNode link, SemanticContext context)
+    {
+        var found = link.Content.OfType<StructureObjectReference>().Select(reference => reference.Link).FirstOrDefault(candidate => candidate is not null);
+        if (found is null)
+        {
+            return null;
+        }
+
+        context.ClaimedLinks.Add(found);
+        return new SemanticLink(found.Uri, found.TargetPage);
+    }
+
+    // Where the element's marked content is on `page`, from the boxes collected with the marked text; default when none.
+    private static LayoutBox Box(StructureNode node, SemanticContext context, int page)
+    {
+        var boxes = new List<LayoutBox>();
+
+        void Collect(StructureNode current)
+        {
+            foreach (var content in current.Content)
+            {
+                if (content is StructureText text && text.Page == page && Marked(context, text) is { } marked && marked.Box != default)
+                {
+                    boxes.Add(marked.Box);
+                }
+                else if (content is StructureNode child)
+                {
+                    Collect(child);
+                }
+            }
+        }
+
+        Collect(node);
+        return boxes.Count == 0 ? default : Geometry.Union(boxes);
+    }
+
+    private static CandidateLine Line(IReadOnlyList<SemanticRun> runs, LayoutBox box) => new([new CandidateCell(runs, box)], box, 0, false);
 
     // The element's page, or the first page found in its content.
     private static int Page(StructureNode node)

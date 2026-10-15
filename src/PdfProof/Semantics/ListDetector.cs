@@ -6,7 +6,8 @@ namespace PdfProof.Semantics;
 // Spec §6, pass 5 (untagged documents; nesting comes in Plan 5b). Consecutive one-cell candidates on one page whose
 // first line starts an item, at the same indentation, form a list. An item starts with a text bullet, a number, or a
 // marker shape (a small path just left of the line, how HTML-to-PDF converters draw CSS bullets). Lines that don't
-// start an item continue the one above. Bullets and numbers are left out of the item text.
+// start an item continue the one above. Bullets and numbers are left out of the item text. A list ends where the kind
+// of item start changes, so a bulleted list followed by a numbered one stays two lists.
 internal static class ListDetector
 {
     public static void Run(SemanticContext context)
@@ -63,13 +64,15 @@ internal static class ListDetector
             }
 
             var left = first.Lines[0].Box.Left;
+            var kind = Start(first.Lines[0], first.Page)!.Value.How;
             var items = new List<List<CandidateLine>>();
             var how = new SortedSet<string>(StringComparer.Ordinal);
             var j = i;
             while (j < candidates.Count
                 && Eligible(candidates[j])
                 && candidates[j].Page == first.Page
-                && Start(candidates[j].Lines[0], first.Page) is not null
+                && Start(candidates[j].Lines[0], first.Page) is { } next
+                && next.How == kind
                 && Math.Abs(candidates[j].Lines[0].Box.Left - left) <= options.IndentTolerance)
             {
                 foreach (var line in candidates[j].Lines)

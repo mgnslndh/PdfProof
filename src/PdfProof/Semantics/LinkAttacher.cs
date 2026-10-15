@@ -2,29 +2,20 @@ using PdfProof.Layout;
 
 namespace PdfProof.Semantics;
 
-// Spec §6, pass 6. A link becomes a link run on the text it covers. Untagged: each layout link (in the page's link
-// order, top to bottom then left to right) goes to the first candidate overlapping its rectangle whose cell under the
+// Spec §6, pass 6. A link becomes a link run on the text it covers. Layout links that no structure element claimed
+// (every link of an untagged document, and links a tagging producer left unconnected) go, in the page's link order
+// (top to bottom, then left to right), to the first candidate overlapping their rectangle whose line or cell under the
 // rectangle contains the link's text at a still-unlinked position; the layout already gives a link the text of the
-// words under it. Tagged: links the structure front end couldn't place (annotations on a P, as QuestPDF writes them)
-// go to the first unlinked occurrence of their text in their element.
+// words under it. Links that tags put on an element without a Link child (QuestPDF puts them on the P) go to the first
+// unlinked occurrence of their text in that element.
 internal static class LinkAttacher
 {
     public static void Run(SemanticContext context)
     {
-        foreach (var candidate in context.Candidates.Where(c => c.Kind is CandidateKind.Unknown or CandidateKind.Paragraph or CandidateKind.Heading && c.Lines.Count > 1))
-        {
-            // One line, so a link that wraps from one line to the next still matches.
-            candidate.Lines = [new CandidateLine(
-                [new CandidateCell(Finalizer.Runs(candidate), candidate.Box)],
-                candidate.Box,
-                candidate.Lines[0].Size,
-                candidate.Lines.All(line => line.IsBold))];
-        }
-
         foreach (var page in context.Layout.Pages)
         {
-            var onPage = context.Candidates.Where(c => !c.Declared && c.Page == page.Number).ToList();
-            foreach (var link in page.Links)
+            var onPage = context.Candidates.Where(c => c.Page == page.Number && c.Box != default).ToList();
+            foreach (var link in page.Links.Where(link => !context.ClaimedLinks.Contains(link)))
             {
                 Place(context, page.Number, link, onPage.Where(c => Overlaps(c.Box, link.Box)), useBoxes: true);
             }
@@ -61,6 +52,8 @@ internal static class LinkAttacher
         context.Decide(SemanticPass.LinkAttachment, page, null, $"\"{SemanticText.Excerpt(text)}\" → {target}: the text was not found in a block and the link is left out");
     }
 
+    // First in the line or cell under the link's rectangle; then, for a paragraph or heading whose link text wraps from
+    // one line to the next, in its lines joined.
     private static bool Attach(Candidate candidate, LayoutLink link, string text, SemanticLink target, bool useBoxes)
     {
         var lines = candidate.Lines.ToList();
@@ -82,6 +75,21 @@ internal static class LinkAttacher
                     candidate.Lines = lines;
                     return true;
                 }
+            }
+        }
+
+        if (candidate.Kind is CandidateKind.Unknown or CandidateKind.Paragraph or CandidateKind.Heading && candidate.Lines.Count > 1)
+        {
+            var runs = Finalizer.Runs(candidate);
+            var at = Unlinked(runs, text);
+            if (at >= 0)
+            {
+                candidate.Lines = [new CandidateLine(
+                    [new CandidateCell(SemanticText.Link(runs, at, text.Length, target), candidate.Box)],
+                    candidate.Box,
+                    candidate.Lines[0].Size,
+                    candidate.Lines.All(line => line.IsBold))];
+                return true;
             }
         }
 

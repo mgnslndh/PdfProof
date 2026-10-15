@@ -4,8 +4,9 @@ using UglyToad.PdfPig.Util;
 
 namespace PdfProof.Layout;
 
-// The visible text of a marked-content sequence and whether all its words are bold or italic.
-internal sealed record MarkedText(string Text, bool IsBold, bool IsItalic);
+// The visible text of a marked-content sequence, whether all its words are bold or italic, and where it is (default
+// when it has no letters).
+internal sealed record MarkedText(string Text, bool IsBold, bool IsItalic, LayoutBox Box);
 
 // The visible text and style of each marked-content sequence on a page, by MCID. Artifacts are skipped. Letters hidden
 // by clipping are already gone (PdfPig applies ClipPaths to marked content too).
@@ -38,9 +39,14 @@ internal static class MarkedContentText
                 var text = element.ActualText is { } actual
                     ? Whitespace.Replace(WordFactory.Normalize(actual, options), " ").Trim()
                     : Text(letters, words, options);
-                var marked = new MarkedText(text, words.Count > 0 && words.All(word => word.IsBold), words.Count > 0 && words.All(word => word.IsItalic));
+                var box = letters.Count == 0 ? default : Geometry.Round(Geometry.Union(letters.Select(letter => Geometry.Bounds(letter.BoundingBox))), options.Decimals);
+                var marked = new MarkedText(text, words.Count > 0 && words.All(word => word.IsBold), words.Count > 0 && words.All(word => word.IsItalic), box);
                 texts[element.MarkedContentIdentifier] = texts.TryGetValue(element.MarkedContentIdentifier, out var earlier) && earlier.Text.Length > 0
-                    ? new MarkedText(text.Length > 0 ? earlier.Text + " " + text : earlier.Text, earlier.IsBold && marked.IsBold, earlier.IsItalic && marked.IsItalic)
+                    ? new MarkedText(
+                        text.Length > 0 ? earlier.Text + " " + text : earlier.Text,
+                        earlier.IsBold && marked.IsBold,
+                        earlier.IsItalic && marked.IsItalic,
+                        earlier.Box == default ? box : box == default ? earlier.Box : Geometry.Union([earlier.Box, box]))
                     : marked;
                 continue; // nested sequences are part of this MCID's content (ISO 32000 doesn't allow nested MCIDs)
             }
