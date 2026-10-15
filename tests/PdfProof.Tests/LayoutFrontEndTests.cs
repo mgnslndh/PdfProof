@@ -25,7 +25,7 @@ public sealed class LayoutFrontEndTests
 
         Assert.Single(doc.Layout.Pages[0].Blocks); // the premise: one layout block
         Assert.Equal(
-            ["Invoice", "Questions? Visit our support site or e-mail us.", "Read the terms and conditions", "Item Qty Amount", "Consulting, senior 10 14 500,00 SEK"],
+            ["Invoice", "Questions? Visit our support site or e-mail us.", "Read the terms and conditions", "Item | Qty | Amount\nConsulting, senior | 10 | 14 500,00 SEK"],
             doc.Semantics.Blocks.Select(b => b.Text));
         Assert.Equal(
             [
@@ -79,7 +79,7 @@ public sealed class LayoutFrontEndTests
 
         var doc = PdfProofDocument.Load(OneBlockInvoice(), new PdfProofOptions { Logger = logger });
 
-        Assert.Contains(doc.Diagnostics.Entries, e => e.ToString() == "Semantics: inferred, 5 blocks, 0 artifacts");
+        Assert.Contains(doc.Diagnostics.Entries, e => e.ToString() == "Semantics: inferred, 4 blocks, 0 artifacts");
         Assert.Contains(logger.Entries, e => e.Level == Microsoft.Extensions.Logging.LogLevel.Debug && e.Message.StartsWith("LayoutFrontEnd (page 1): block 1: split before", StringComparison.Ordinal));
     }
 }

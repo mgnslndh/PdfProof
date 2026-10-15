@@ -32,9 +32,18 @@ internal static class Finalizer
         return candidate.Kind switch
         {
             CandidateKind.Heading => new SemanticHeading(candidate.Page, source, candidate.Level ?? 1, Runs(candidate), candidate.Box),
+            CandidateKind.Table => new SemanticTable(
+                candidate.Page,
+                source,
+                candidate.HeaderRows > 0 ? Row(candidate.Lines[0]) : null,
+                candidate.Lines.Skip(candidate.HeaderRows).Select(Row).ToList(),
+                candidate.Box),
             _ => new SemanticParagraph(candidate.Page, source, Runs(candidate), candidate.Box),
         };
     }
+
+    private static SemanticRow Row(CandidateLine line) =>
+        new(line.Cells.Select(cell => new SemanticCell(SemanticText.Normalize(cell.Runs))).ToList());
 
     // Declared headings nest: a section runs to the next heading of the same or a higher level. Inferred headings
     // don't (their levels are unreliable): a section runs to the next heading of any level (spec §6, rules).
