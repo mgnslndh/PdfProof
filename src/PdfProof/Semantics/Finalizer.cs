@@ -43,6 +43,7 @@ internal static class Finalizer
                 source,
                 candidate.Lines.Select(line => new SemanticListItem(SemanticText.Concat(line.Cells.Select(cell => cell.Runs)))).ToList(),
                 candidate.Box),
+            CandidateKind.Figure => new SemanticFigure(candidate.Page, source, candidate.Alt, candidate.Box),
             _ => new SemanticParagraph(candidate.Page, source, Runs(candidate), candidate.Box),
         };
     }

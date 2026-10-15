@@ -16,8 +16,7 @@ internal static class SemanticBuilder
         };
         var context = new SemanticContext(layout, options, diagnostics);
 
-        // The structure front end comes in Task 8; until then tagged documents use the layout front end too.
-        context.Candidates.AddRange(LayoutFrontEnd.Build(context));
+        context.Candidates.AddRange(declared ? StructureFrontEnd.Build(structure, context) : LayoutFrontEnd.Build(context));
 
         if (options.Artifacts.Enabled)
         {

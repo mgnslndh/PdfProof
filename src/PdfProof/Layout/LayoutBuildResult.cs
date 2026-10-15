@@ -5,5 +5,5 @@ namespace PdfProof.Layout;
 // boxes of small paths per page, the candidates for list markers drawn as shapes.
 internal sealed record LayoutBuildResult(
     LayoutModel Model,
-    IReadOnlyDictionary<int, IReadOnlyDictionary<int, string>> MarkedText,
+    IReadOnlyDictionary<int, IReadOnlyDictionary<int, MarkedText>> MarkedText,
     IReadOnlyDictionary<int, IReadOnlyList<LayoutBox>> Markers);

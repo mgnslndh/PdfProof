@@ -18,7 +18,7 @@ internal static class LayoutBuilder
     {
         var pageCount = PdfPigCall.Read(() => document.NumberOfPages);
         var pages = new List<LayoutPage>(pageCount);
-        var markedText = new Dictionary<int, IReadOnlyDictionary<int, string>>();
+        var markedText = new Dictionary<int, IReadOnlyDictionary<int, MarkedText>>();
         var markers = new Dictionary<int, IReadOnlyList<LayoutBox>>();
         var formFields = FormFieldReader.Read(document, options, diagnostics);
         for (var number = 1; number <= pageCount; number++)
