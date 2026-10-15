@@ -20,4 +20,7 @@ internal sealed class DiagnosticsCollector(ILogger? logger)
 
     public PdfDiagnostics ToDiagnostics(PdfProfile profile, bool profileDetected) =>
         new(profile, profileDetected, _entries.ToArray());
+
+    // Logs at Debug without recording an entry: semantic decisions live in SemanticModel.Decisions.
+    public void Log(string message) => logger?.Log(LogLevel.Debug, "{Decision}", message);
 }

@@ -14,6 +14,17 @@ internal static class SemanticBuilder
             SemanticSourceOption.Layout => false,
             _ => structure.IsTagged,
         };
-        return new SemanticModel(declared ? SemanticSource.Declared : SemanticSource.Inferred, [], [], [], []);
+        var context = new SemanticContext(layout, options, diagnostics);
+
+        // The structure front end comes in Task 8; until then tagged documents use the layout front end too.
+        context.Candidates.AddRange(LayoutFrontEnd.Build(context));
+
+        var source = declared ? SemanticSource.Declared : SemanticSource.Inferred;
+        var model = Finalizer.Build(context, source);
+        diagnostics.Add(
+            PdfDiagnosticCodes.Semantics,
+            null,
+            $"{(declared ? "declared" : "inferred")}, {model.Blocks.Count} blocks, {model.Artifacts.Count} artifacts");
+        return model;
     }
 }

@@ -438,3 +438,4 @@ static PdfProof.Semantics.SemanticOptions.operator ==(PdfProof.Semantics.Semanti
 static PdfProof.Semantics.TableDetectionOptions.Default.get -> PdfProof.Semantics.TableDetectionOptions!
 static PdfProof.Semantics.TableDetectionOptions.operator !=(PdfProof.Semantics.TableDetectionOptions? left, PdfProof.Semantics.TableDetectionOptions? right) -> bool
 static PdfProof.Semantics.TableDetectionOptions.operator ==(PdfProof.Semantics.TableDetectionOptions? left, PdfProof.Semantics.TableDetectionOptions? right) -> bool
+const PdfProof.PdfDiagnosticCodes.Semantics = "Semantics" -> string!
