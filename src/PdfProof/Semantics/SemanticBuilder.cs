@@ -19,6 +19,11 @@ internal static class SemanticBuilder
         // The structure front end comes in Task 8; until then tagged documents use the layout front end too.
         context.Candidates.AddRange(LayoutFrontEnd.Build(context));
 
+        if (options.Artifacts.Enabled)
+        {
+            ArtifactDetector.Run(context);
+        }
+
         var source = declared ? SemanticSource.Declared : SemanticSource.Inferred;
         var model = Finalizer.Build(context, source);
         diagnostics.Add(
