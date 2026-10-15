@@ -143,6 +143,10 @@ internal sealed class RawPdf
     public static string Text(double x, double y, string text, double size = 12, string font = "F1") =>
         FormattableString.Invariant($"BT /{font} {size} Tf {x} {y} Td ({Escape(text)}) Tj ET\n");
 
+    /// A filled square of `size` points with its lower-left corner at (x, y), as HTML-to-PDF converters draw CSS bullets.
+    public static string Square(double x, double y, double size) =>
+        FormattableString.Invariant($"{x} {y} {size} {size} re f\n");
+
     /// A marked-content sequence with an MCID, as a Tagged PDF writes it: "/P <</MCID 0>> BDC ... EMC".
     public static string Marked(string tag, int mcid, string body) =>
         FormattableString.Invariant($"/{tag} <</MCID {mcid}>> BDC\n{body}EMC\n");

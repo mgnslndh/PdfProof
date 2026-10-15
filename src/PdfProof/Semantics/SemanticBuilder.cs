@@ -34,6 +34,11 @@ internal static class SemanticBuilder
             TableDetector.Run(context);
         }
 
+        if (!declared && options.Lists.Enabled)
+        {
+            ListDetector.Run(context);
+        }
+
         var source = declared ? SemanticSource.Declared : SemanticSource.Inferred;
         var model = Finalizer.Build(context, source);
         diagnostics.Add(

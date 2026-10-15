@@ -38,6 +38,11 @@ internal static class Finalizer
                 candidate.HeaderRows > 0 ? Row(candidate.Lines[0]) : null,
                 candidate.Lines.Skip(candidate.HeaderRows).Select(Row).ToList(),
                 candidate.Box),
+            CandidateKind.List => new SemanticList(
+                candidate.Page,
+                source,
+                candidate.Lines.Select(line => new SemanticListItem(SemanticText.Concat(line.Cells.Select(cell => cell.Runs)))).ToList(),
+                candidate.Box),
             _ => new SemanticParagraph(candidate.Page, source, Runs(candidate), candidate.Box),
         };
     }
