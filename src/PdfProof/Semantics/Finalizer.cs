@@ -31,9 +31,54 @@ internal static class Finalizer
         var source = candidate.Declared ? SemanticSource.Declared : SemanticSource.Inferred;
         return candidate.Kind switch
         {
+            CandidateKind.Heading => new SemanticHeading(candidate.Page, source, candidate.Level ?? 1, Runs(candidate), candidate.Box),
             _ => new SemanticParagraph(candidate.Page, source, Runs(candidate), candidate.Box),
         };
     }
 
-    private static IReadOnlyList<SemanticSection> Sections(IReadOnlyList<SemanticBlock> blocks, SemanticSource source) => [];
+    // Declared headings nest: a section runs to the next heading of the same or a higher level. Inferred headings
+    // don't (their levels are unreliable): a section runs to the next heading of any level (spec §6, rules).
+    private static IReadOnlyList<SemanticSection> Sections(IReadOnlyList<SemanticBlock> blocks, SemanticSource source)
+    {
+        var roots = new List<SectionBuilder>();
+        var open = new List<SectionBuilder>();
+        foreach (var block in blocks)
+        {
+            if (block is SemanticHeading heading)
+            {
+                if (source == SemanticSource.Inferred)
+                {
+                    open.Clear();
+                }
+                else
+                {
+                    while (open.Count > 0 && open[open.Count - 1].Heading.Level >= heading.Level)
+                    {
+                        open.RemoveAt(open.Count - 1);
+                    }
+                }
+
+                var section = new SectionBuilder(heading);
+                (open.Count == 0 ? roots : open[open.Count - 1].Children).Add(section);
+                open.Add(section);
+            }
+            else if (open.Count > 0)
+            {
+                open[open.Count - 1].Blocks.Add(block);
+            }
+        }
+
+        return roots.Select(section => section.Build()).ToList();
+    }
+
+    private sealed class SectionBuilder(SemanticHeading heading)
+    {
+        public SemanticHeading Heading { get; } = heading;
+
+        public List<SemanticBlock> Blocks { get; } = [];
+
+        public List<SectionBuilder> Children { get; } = [];
+
+        public SemanticSection Build() => new(Heading, Blocks, Children.Select(child => child.Build()).ToList());
+    }
 }

@@ -140,7 +140,7 @@ internal sealed class RawPdf
     }
 
     /// A text object showing one string at (x, y).
-    public static string Text(double x, double y, string text, int size = 12, string font = "F1") =>
+    public static string Text(double x, double y, string text, double size = 12, string font = "F1") =>
         FormattableString.Invariant($"BT /{font} {size} Tf {x} {y} Td ({Escape(text)}) Tj ET\n");
 
     /// A marked-content sequence with an MCID, as a Tagged PDF writes it: "/P <</MCID 0>> BDC ... EMC".

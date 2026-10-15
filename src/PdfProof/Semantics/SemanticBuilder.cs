@@ -24,6 +24,11 @@ internal static class SemanticBuilder
             ArtifactDetector.Run(context);
         }
 
+        if (!declared && options.Headings.Enabled)
+        {
+            HeadingClassifier.Run(context);
+        }
+
         var source = declared ? SemanticSource.Declared : SemanticSource.Inferred;
         var model = Finalizer.Build(context, source);
         diagnostics.Add(
