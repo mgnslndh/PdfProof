@@ -12,6 +12,9 @@ public enum SemanticPass
     /// <summary>Finds running headers, footers and page numbers.</summary>
     ArtifactDetection,
 
+    /// <summary>Merges paragraphs and tables split by a page break. Not run yet: it comes with Plan 5b.</summary>
+    CrossPageMerge,
+
     /// <summary>Finds headings and their levels from font size and weight (untagged documents).</summary>
     HeadingClassification,
 

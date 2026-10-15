@@ -39,7 +39,7 @@ public sealed class SemanticModelTests
         Assert.NotEmpty(options.Artifacts.PageNumberPatterns);
         Assert.Equal((true, 1.15, 2, true), (options.Headings.Enabled, options.Headings.MinSizeRatio, options.Headings.MaxLines, options.Headings.BoldShortLineIsHeading));
         Assert.Equal((true, 2, 3.0), (options.Tables.Enabled, options.Tables.MinRows, options.Tables.ColumnTolerance));
-        Assert.Equal(["•", "◦", "▪", "–", "*", "-"], options.Lists.BulletGlyphs);
+        Assert.Equal(["•", "◦", "‣", "▪", "–", "*", "-"], options.Lists.BulletGlyphs);
         Assert.Equal((true, true, 3.0), (options.Lists.Enabled, options.Lists.UseMarkerShapes, options.Lists.IndentTolerance));
         Assert.True(options.Links.Enabled);
     }

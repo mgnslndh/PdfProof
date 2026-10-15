@@ -28,7 +28,8 @@ internal static class TableDetector
                 j++;
             }
 
-            if (rows.Count >= options.MinRows && Align(rows, options.ColumnTolerance) is { } aligned)
+            var (aligned, reason) = rows.Count >= options.MinRows ? Align(rows, options.ColumnTolerance) : (null, null);
+            if (aligned is not null)
             {
                 var header = rows[0].IsBold != rows[1].IsBold ? 1 : 0;
                 var table = new Candidate(candidates[i].Page, aligned, declared: false) { Kind = CandidateKind.Table, HeaderRows = header };
@@ -42,6 +43,11 @@ internal static class TableDetector
             }
             else
             {
+                if (reason is not null)
+                {
+                    context.Decide(SemanticPass.TableDetection, candidates[i].Page, null, $"{rows.Count} rows of cells are not a table: {reason}");
+                }
+
                 i = j - 1;
             }
         }
@@ -50,8 +56,8 @@ internal static class TableDetector
     private static bool IsRows(Candidate candidate) =>
         candidate.Kind == CandidateKind.Unknown && candidate.Lines.Count > 0 && candidate.Lines.All(line => line.Cells.Count >= 2);
 
-    // The rows with one cell per column, or null when they don't line up.
-    private static List<CandidateLine>? Align(List<CandidateLine> rows, double tolerance)
+    // The rows with one cell per column, or why they don't line up.
+    private static (List<CandidateLine>? Aligned, string? Reason) Align(List<CandidateLine> rows, double tolerance)
     {
         var columns = new List<(double Left, double Right)>();
         foreach (var cell in rows.SelectMany(row => row.Cells).OrderBy(cell => cell.Box.Left))
@@ -77,7 +83,7 @@ internal static class TableDetector
                 var column = columns.FindIndex(c => cell.Box.Left >= c.Left - tolerance && cell.Box.Right <= c.Right + tolerance);
                 if (column < 0 || cells[column] is not null)
                 {
-                    return null;
+                    return (null, "two cells of one row fall in the same column");
                 }
 
                 cells[column] = cell;
@@ -87,6 +93,6 @@ internal static class TableDetector
             aligned.Add(row with { Cells = cells.Select(cell => cell ?? new CandidateCell([], default)).ToList() });
         }
 
-        return filled.Count(count => count == rows.Count) >= 2 ? aligned : null;
+        return filled.Count(count => count == rows.Count) >= 2 ? (aligned, null) : (null, "fewer than two columns have a cell in every row");
     }
 }

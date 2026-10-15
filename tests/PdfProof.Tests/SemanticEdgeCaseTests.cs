@@ -189,4 +189,73 @@ public sealed class SemanticEdgeCaseTests
 
         Assert.Equal("https://example.com/support", run.Link?.Uri);
     }
+
+    [Fact]
+    public void A_single_numbered_line_is_not_a_list()
+    {
+        // "1. Introduction" is a numbered heading or paragraph; "C. Smith" is an initial. A bullet may stand alone.
+        var doc = PdfProofDocument.Load(RowsLayoutTests.Pdf(
+            RawPdf.Text(50, 700, "1. Introduction", 12) +
+            RawPdf.Text(50, 650, "C. Smith wrote this report about the quarter.", 12)));
+
+        Assert.Empty(doc.Semantics.Lists);
+    }
+
+    [Fact]
+    public void Rows_of_cells_that_are_not_a_table_say_why()
+    {
+        var doc = PdfProofDocument.Load(RowsLayoutTests.Pdf(
+            RawPdf.Text(50, 700, "North", 12) + RawPdf.Text(250, 700, "East", 12) +
+            RawPdf.Text(150, 685, "South", 12) + RawPdf.Text(350, 685, "West", 12)));
+
+        Assert.Contains(doc.Semantics.Decisions, d => d.ToString() == "TableDetection (page 1): 2 rows of cells are not a table: fewer than two columns have a cell in every row");
+    }
+
+    [Fact]
+    public void Tagged_table_spans_and_extra_header_rows_are_logged()
+    {
+        var pdf = new RawPdf();
+        var page = pdf.AddPage(
+            RawPdf.Marked("TH", 0, RawPdf.Text(50, 720, "Period")) + RawPdf.Marked("TH", 1, RawPdf.Text(50, 700, "Item")) +
+            RawPdf.Marked("TD", 2, RawPdf.Text(50, 680, "Consulting")));
+        var spanning = pdf.Add($"<< /S /TH /Pg {page} 0 R /K 0 /A << /O /Table /ColSpan 2 >> >>");
+        var second = pdf.Add($"<< /S /TH /Pg {page} 0 R /K 1 >>");
+        var head = pdf.Add($"<< /S /THead /K [{pdf.Add($"<< /S /TR /K [{spanning} 0 R] >>")} 0 R {pdf.Add($"<< /S /TR /K [{second} 0 R] >>")} 0 R] >>");
+        var body = pdf.Add($"<< /S /TBody /K [{pdf.Add($"<< /S /TR /K [{pdf.Add($"<< /S /TD /Pg {page} 0 R /K 2 >>")} 0 R] >>")} 0 R] >>");
+        pdf.Tag($"{pdf.Add($"<< /S /Table /K [{head} 0 R {body} 0 R] >>")} 0 R");
+
+        var decisions = PdfProofDocument.Load(pdf.Build()).Semantics.Decisions.Select(d => d.ToString()).ToList();
+
+        Assert.Contains("StructureFrontEnd (page 1): a table has row or column spans, which are not supported yet; its cells are read as written", decisions);
+        Assert.Contains("StructureFrontEnd (page 1): a table has 2 header rows; only the first is its header", decisions);
+    }
+
+    [Fact]
+    public void A_running_header_drifting_by_tenths_of_a_point_still_repeats()
+    {
+        double[] baselines = [803.0, 803.6, 804.2];
+        var doc = PdfProofDocument.Load(ArtifactDetectionTests.Pages(n => RawPdf.Text(50, baselines[n - 1], "Quarterly report", 10) + RawPdf.Text(50, 700, $"Content {n}."), 3));
+
+        var artifact = Assert.Single(doc.Semantics.Artifacts);
+        Assert.Equal([1, 2, 3], artifact.Pages);
+    }
+
+    [Fact]
+    public void The_CrossPageMerge_pass_has_its_place_in_the_order()
+    {
+        Assert.Equal(
+            ["LayoutFrontEnd", "StructureFrontEnd", "ArtifactDetection", "CrossPageMerge", "HeadingClassification", "TableDetection", "ListDetection", "LinkAttachment", "Finalize"],
+            Enum.GetNames(typeof(SemanticPass)));
+    }
+
+    [Fact]
+    public void Asking_for_structure_semantics_from_an_untagged_pdf_is_a_warning()
+    {
+        var profile = PdfProfile.Default with { Semantics = SemanticOptions.Default with { Source = SemanticSourceOption.Structure } };
+
+        var doc = PdfProofDocument.Load(RowsLayoutTests.Pdf(RawPdf.Text(50, 700, "Hello")), new PdfProofOptions { Profile = profile });
+
+        Assert.Empty(doc.Semantics.Blocks);
+        Assert.Contains(doc.Diagnostics.Entries, e => e.ToString() == "NoStructure: The options ask for semantics from the structure tree, but the PDF isn't tagged; the semantic model is empty.");
+    }
 }

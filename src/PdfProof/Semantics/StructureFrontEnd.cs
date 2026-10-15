@@ -155,6 +155,17 @@ internal static class StructureFrontEnd
         var rows = new List<(StructureNode Row, bool InHead)>();
         Rows(node, inHead: false, rows);
         var page = Page(node);
+        if (rows.SelectMany(row => row.Row.Children).Any(cell => cell.RowSpan > 1 || cell.ColumnSpan > 1))
+        {
+            context.Decide(SemanticPass.StructureFrontEnd, page, null, "a table has row or column spans, which are not supported yet; its cells are read as written");
+        }
+
+        var headRows = rows.Count(row => row.InHead);
+        if (headRows > 1)
+        {
+            context.Decide(SemanticPass.StructureFrontEnd, page, null, $"a table has {headRows} header rows; only the first is its header");
+        }
+
         var lines = new List<CandidateLine>();
         var header = 0;
         foreach (var (row, inHead) in rows)

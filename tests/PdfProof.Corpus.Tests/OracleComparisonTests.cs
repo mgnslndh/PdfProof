@@ -120,4 +120,22 @@ public sealed class OracleComparisonTests
         Assert.Equal(["heading", "paragraph", "paragraph", "table", "heading", "list"], oracle.Blocks.Select(b => b.Type));
         Assert.Equal(["Item", "Qty", "Amount", "Consulting, senior", "10", "14 500,00 SEK"], oracle.Blocks[3].Texts);
     }
+
+    [Fact]
+    public void A_link_the_oracle_does_not_expect_is_a_mismatch()
+    {
+        var withoutLink = Expected with { Blocks = [Expected.Blocks[0], Expected.Blocks[1] with { Links = [] }, .. Expected.Blocks.Skip(2)] };
+
+        Assert.Equal(
+            ["block 2 (paragraph): unexpected link \"Visit our support site\" to https://example.com/support"],
+            OracleComparison.Compare(withoutLink, Invoice()));
+    }
+
+    [Fact]
+    public void An_artifact_the_oracle_does_not_expect_is_a_mismatch()
+    {
+        Assert.Equal(
+            ["artifact: unexpected footer \"Page {n} of {N}\" on pages 1-2"],
+            OracleComparison.Compare(Expected with { Artifacts = [] }, Invoice()));
+    }
 }

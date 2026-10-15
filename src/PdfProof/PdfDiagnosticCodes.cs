@@ -38,4 +38,7 @@ public static class PdfDiagnosticCodes
 
     /// <summary>What the semantic model holds: its source and how many blocks and artifacts.</summary>
     public const string Semantics = "Semantics";
+
+    /// <summary>The options ask for semantics from the structure tree, but the PDF isn't tagged. Logged as a warning.</summary>
+    public const string NoStructure = "NoStructure";
 }

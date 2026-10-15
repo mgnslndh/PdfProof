@@ -14,6 +14,11 @@ internal static class SemanticBuilder
             SemanticSourceOption.Layout => false,
             _ => structure.IsTagged,
         };
+        if (declared && !structure.IsTagged)
+        {
+            diagnostics.Add(PdfDiagnosticCodes.NoStructure, null, "The options ask for semantics from the structure tree, but the PDF isn't tagged; the semantic model is empty.");
+        }
+
         var context = new SemanticContext(layout, options, diagnostics);
 
         context.Candidates.AddRange(declared ? StructureFrontEnd.Build(structure, context) : LayoutFrontEnd.Build(context));

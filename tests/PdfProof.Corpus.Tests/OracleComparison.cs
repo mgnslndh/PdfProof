@@ -47,6 +47,11 @@ internal static class OracleComparison
             }
         }
 
+        foreach (var artifact in document.Semantics.Artifacts.Where(a => !oracle.Artifacts.Any(e => e.Role.ToLowerInvariant() == Name(a.Role) && Normalize(e.Text) == Normalize(a.Text))))
+        {
+            mismatches.Add($"artifact: unexpected {Name(artifact.Role)} \"{artifact.Text}\" on pages {Range(artifact.Pages)}");
+        }
+
         return mismatches;
     }
 
@@ -112,6 +117,11 @@ internal static class OracleComparison
             && (link.Page is null || run.Link!.TargetPage == link.Page))))
         {
             mismatches.Add($"{where}: no link \"{link.Text}\" to {link.Uri ?? (link.Page is { } target ? $"page {target}" : "anywhere")}");
+        }
+
+        foreach (var run in runs.Where(run => !expected.Links.Any(link => Normalize(link.Text) == Normalize(run.Text))))
+        {
+            mismatches.Add($"{where}: unexpected link \"{run.Text}\" to {run.Link}");
         }
     }
 

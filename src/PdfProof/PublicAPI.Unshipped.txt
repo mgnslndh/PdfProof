@@ -361,14 +361,6 @@ PdfProof.Semantics.SemanticOptions.Tables.init -> void
 PdfProof.Semantics.SemanticParagraph
 PdfProof.Semantics.SemanticParagraph.Runs.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticRun!>!
 PdfProof.Semantics.SemanticPass
-PdfProof.Semantics.SemanticPass.ArtifactDetection = 2 -> PdfProof.Semantics.SemanticPass
-PdfProof.Semantics.SemanticPass.Finalize = 7 -> PdfProof.Semantics.SemanticPass
-PdfProof.Semantics.SemanticPass.HeadingClassification = 3 -> PdfProof.Semantics.SemanticPass
-PdfProof.Semantics.SemanticPass.LayoutFrontEnd = 0 -> PdfProof.Semantics.SemanticPass
-PdfProof.Semantics.SemanticPass.LinkAttachment = 6 -> PdfProof.Semantics.SemanticPass
-PdfProof.Semantics.SemanticPass.ListDetection = 5 -> PdfProof.Semantics.SemanticPass
-PdfProof.Semantics.SemanticPass.StructureFrontEnd = 1 -> PdfProof.Semantics.SemanticPass
-PdfProof.Semantics.SemanticPass.TableDetection = 4 -> PdfProof.Semantics.SemanticPass
 PdfProof.Semantics.SemanticRow
 PdfProof.Semantics.SemanticRow.Cells.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticCell!>!
 PdfProof.Semantics.SemanticRun
@@ -439,3 +431,13 @@ static PdfProof.Semantics.TableDetectionOptions.Default.get -> PdfProof.Semantic
 static PdfProof.Semantics.TableDetectionOptions.operator !=(PdfProof.Semantics.TableDetectionOptions? left, PdfProof.Semantics.TableDetectionOptions? right) -> bool
 static PdfProof.Semantics.TableDetectionOptions.operator ==(PdfProof.Semantics.TableDetectionOptions? left, PdfProof.Semantics.TableDetectionOptions? right) -> bool
 const PdfProof.PdfDiagnosticCodes.Semantics = "Semantics" -> string!
+PdfProof.Semantics.SemanticPass.ArtifactDetection = 2 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.CrossPageMerge = 3 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.Finalize = 8 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.HeadingClassification = 4 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.LayoutFrontEnd = 0 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.LinkAttachment = 7 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.ListDetection = 6 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.StructureFrontEnd = 1 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.TableDetection = 5 -> PdfProof.Semantics.SemanticPass
+const PdfProof.PdfDiagnosticCodes.NoStructure = "NoStructure" -> string!

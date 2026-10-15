@@ -15,7 +15,7 @@ public sealed record ListDetectionOptions
     /// <summary>Run the pass. Default on.</summary>
     public bool Enabled { get; init; } = true;
 
-    /// <summary>Text bullets. A <c>-</c> followed by a digit is a minus sign, not a bullet. Default <c>• ◦ ▪ – * -</c>.</summary>
+    /// <summary>Text bullets. A <c>-</c> followed by a digit is a minus sign, not a bullet. Default <c>• ◦ ‣ ▪ – * -</c> (<c>‣</c> is Typst's nested bullet).</summary>
     public IReadOnlyList<string> BulletGlyphs
     {
         get => _bulletGlyphs;
@@ -39,7 +39,7 @@ public sealed record ListDetectionOptions
         init => _indentTolerance = Throw.IfOutOfRange(value, 0, 100, nameof(IndentTolerance));
     }
 
-    private readonly IReadOnlyList<string> _bulletGlyphs = ReadOnly.List(["•", "◦", "▪", "–", "*", "-"]);
+    private readonly IReadOnlyList<string> _bulletGlyphs = ReadOnly.List(["•", "◦", "‣", "▪", "–", "*", "-"]);
     private readonly IReadOnlyList<string> _numberingPatterns = ReadOnly.List([@"^\d{1,3}[.)]", @"^[a-z][.)]", @"^(?i:[ivxlc]{1,6})[.)]"]);
     private readonly double _indentTolerance = 3;
 

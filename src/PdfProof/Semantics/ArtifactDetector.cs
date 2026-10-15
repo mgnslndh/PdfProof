@@ -41,7 +41,7 @@ internal static class ArtifactDetector
 
         var needed = Math.Max(2, (int)Math.Ceiling(options.MinPageFraction * pages.Count));
         var found = new List<(int Page, SemanticArtifactRole Role, CandidateLine Row, string Text)>();
-        foreach (var group in band.GroupBy(item => (item.Role, item.Text, Height: Math.Round(item.Row.Box.Top / 2))))
+        foreach (var group in band.GroupBy(item => (item.Role, item.Text)).SelectMany(Heights))
         {
             var onPages = group.Select(item => item.Page).Distinct().OrderBy(page => page).ToList();
             if (onPages.Count >= needed)
@@ -51,7 +51,7 @@ internal static class ArtifactDetector
                     SemanticPass.ArtifactDetection,
                     null,
                     null,
-                    $"{Name(group.Key.Role)} \"{group.Key.Text}\" repeats on pages {string.Join(", ", onPages.Select(p => p.ToString(CultureInfo.InvariantCulture)))}");
+                    $"{Name(group[0].Role)} \"{group[0].Text}\" repeats on pages {string.Join(", ", onPages.Select(p => p.ToString(CultureInfo.InvariantCulture)))}");
             }
         }
 
@@ -69,6 +69,29 @@ internal static class ArtifactDetector
         }
 
         Remove(context, found);
+    }
+
+    // The rows of one text split where their heights are more than 2 pt apart, so a header drifting by tenths of a
+    // point stays one group.
+    private static IEnumerable<List<(int Page, SemanticArtifactRole Role, CandidateLine Row, string Text)>> Heights(
+        IEnumerable<(int Page, SemanticArtifactRole Role, CandidateLine Row, string Text)> items)
+    {
+        var cluster = new List<(int Page, SemanticArtifactRole Role, CandidateLine Row, string Text)>();
+        foreach (var item in items.OrderBy(item => item.Row.Box.Top).ThenBy(item => item.Page))
+        {
+            if (cluster.Count > 0 && item.Row.Box.Top - cluster[cluster.Count - 1].Row.Box.Top > 2)
+            {
+                yield return cluster;
+                cluster = [];
+            }
+
+            cluster.Add(item);
+        }
+
+        if (cluster.Count > 0)
+        {
+            yield return cluster;
+        }
     }
 
     // The page number becomes {n}; after it, the page count becomes {N}. Other numbers stay.

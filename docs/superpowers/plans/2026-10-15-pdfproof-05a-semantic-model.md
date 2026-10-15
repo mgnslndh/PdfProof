@@ -47,6 +47,19 @@
 
 Heading sizes against body text: SelectPdf 15.7 and 11 against 7.6 (page scaled); MigraDoc, QuestPDF and Chromium 20 and 14 against 10; Typst 14 and 12 against 10.
 
+**Deferred from the final review** (minor findings, recorded here so a later plan picks them up):
+
+| Finding | Where it belongs |
+|---|---|
+| Tagged tables: row and column spans are read as written, and only the first of several `THead` rows is the header (both are logged) | Plan 5b, with the `long-table` document |
+| A `Caption` inside a tagged `Figure` is dropped; an element without a page falls back to page 1 | Plan 5b, with figures |
+| In a mostly bold document, the last bold paragraph before a regular one becomes a heading (the heuristic as specified) | Plan 7, in the documentation of the heuristics |
+| An unknown tagged role with its own text and block children becomes one paragraph | When a producer is seen doing it |
+| A footer such as "Rev 1 – Page 1 of 3" puts `{n}` on the revision number, so it stops repeating | When a corpus document needs it |
+| Option records with list properties (`BulletGlyphs`, `PageNumberPatterns`) compare their lists by reference, like `TextReplacements` | With the API review before `0.3.0-beta` |
+| List markers are collected even when `UseMarkerShapes` is off (cheap) | Whenever the layout pass is next touched |
+| Under the default Rows strategy, an untagged two-column page reads as a table (Rows interleaves columns by design; ReadingOrder is the multi-column strategy) | Plan 5b's `two-column` work, or OQ-4 |
+
 ## Global Constraints
 
 - Library target frameworks: `netstandard2.0;net8.0;net10.0`. Tests: `net48;net10.0` on Windows, `net10.0` elsewhere.

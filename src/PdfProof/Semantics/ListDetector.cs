@@ -16,7 +16,8 @@ internal static class ListDetector
         var numbering = options.NumberingPatterns.Select(pattern => new Regex(pattern, RegexOptions.CultureInvariant)).ToList();
         var candidates = context.Candidates;
 
-        (int Length, string How)? Start(CandidateLine line, int page)
+        // How: the words in decisions. Kind: what must stay the same through one list (the bullet, or which numbering pattern).
+        (int Length, string How, string Kind)? Start(CandidateLine line, int page)
         {
             var text = line.Text;
             foreach (var glyph in options.BulletGlyphs)
@@ -31,7 +32,7 @@ internal static class ListDetector
 
                     if (char.IsWhiteSpace(next) || char.IsLetter(next))
                     {
-                        return (glyph.Length, $"bullet \"{glyph}\"");
+                        return (glyph.Length, $"bullet \"{glyph}\"", "bullet " + glyph);
                     }
                 }
             }
@@ -41,13 +42,13 @@ internal static class ListDetector
                 var match = pattern.Match(text);
                 if (match.Success && match.Index == 0 && text.Length > match.Length && char.IsWhiteSpace(text[match.Length]))
                 {
-                    return (match.Length, "numbering");
+                    return (match.Length, "numbering", "numbering " + numbering.IndexOf(pattern).ToString(System.Globalization.CultureInfo.InvariantCulture));
                 }
             }
 
             if (options.UseMarkerShapes && context.Build.Markers.TryGetValue(page, out var markers) && markers.Any(marker => Fits(marker, line)))
             {
-                return (0, "marker shapes");
+                return (0, "marker shapes", "marker");
             }
 
             return null;
@@ -64,7 +65,7 @@ internal static class ListDetector
             }
 
             var left = first.Lines[0].Box.Left;
-            var kind = Start(first.Lines[0], first.Page)!.Value.How;
+            var kind = Start(first.Lines[0], first.Page)!.Value.Kind;
             var items = new List<List<CandidateLine>>();
             var how = new SortedSet<string>(StringComparer.Ordinal);
             var j = i;
@@ -72,7 +73,7 @@ internal static class ListDetector
                 && Eligible(candidates[j])
                 && candidates[j].Page == first.Page
                 && Start(candidates[j].Lines[0], first.Page) is { } next
-                && next.How == kind
+                && next.Kind == kind
                 && Math.Abs(candidates[j].Lines[0].Box.Left - left) <= options.IndentTolerance)
             {
                 foreach (var line in candidates[j].Lines)
@@ -89,6 +90,13 @@ internal static class ListDetector
                 }
 
                 j++;
+            }
+
+            // A single numbered line is a numbered heading or paragraph ("1. Introduction") or an initial ("C. Smith");
+            // a single bullet is a list (the invoice's one-item terms).
+            if (kind.StartsWith("numbering", StringComparison.Ordinal) && items.Count < 2)
+            {
+                continue;
             }
 
             var list = new Candidate(first.Page, items.Select(Item).ToList(), declared: false) { Kind = CandidateKind.List };
