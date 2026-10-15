@@ -17,7 +17,7 @@ internal sealed record Oracle(string? Title, int? PageCount, IReadOnlyList<Oracl
         var semantics = Property(root, "semantics");
         var blocks = semantics is { } s1 && Property(s1, "blocks") is { } blockArray ? blockArray.EnumerateArray().Select(Block).ToList() : [];
         var artifacts = semantics is { } s2 && Property(s2, "artifacts") is { } artifactArray
-            ? artifactArray.EnumerateArray().Select(a => new OracleArtifact(String(a, "role") ?? "", String(a, "text") ?? "")).ToList()
+            ? artifactArray.EnumerateArray().Select(a => new OracleArtifact(String(a, "role") ?? "", String(a, "text") ?? "", String(a, "pages"))).ToList()
             : [];
         return new Oracle(
             metadata is { } m1 ? String(m1, "title") : null,
@@ -68,19 +68,8 @@ internal sealed record OracleBlock(
         "list" => Items,
         _ => Text is null ? Enumerable.Empty<string>() : new[] { Text },
     };
-
-    // The structure role a tagged producer should give the block. "H" accepts any heading level, for oracles that
-    // leave the level out.
-    public string Role => Type switch
-    {
-        "heading" => Level is { } level ? "H" + level.ToString(CultureInfo.InvariantCulture) : "H",
-        "paragraph" => "P",
-        "table" => "Table",
-        "list" => "L",
-        _ => "Figure",
-    };
 }
 
 internal sealed record OracleLink(string Text, string? Uri, int? Page);
 
-internal sealed record OracleArtifact(string Role, string Text);
+internal sealed record OracleArtifact(string Role, string Text, string? Pages);

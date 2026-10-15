@@ -31,7 +31,7 @@ Windows; LibreOffice fixtures only where LibreOffice is installed (best effort).
 
 | Path | What |
 |---|---|
-| `src/PdfProof` | Core: `PdfProofDocument`, options and profiles, diagnostics; `Layout/` (layout model and strategies); `Structure/` (Tagged PDF structure tree) (netstandard2.0; net8.0; net10.0) |
+| `src/PdfProof` | Core: `PdfProofDocument`, options and profiles, diagnostics; `Layout/` (layout model and strategies); `Structure/` (Tagged PDF structure tree); `Semantics/` (semantic model: front ends, passes, decision log) (netstandard2.0; net8.0; net10.0) |
 | `src/PdfProof.Testing` | Assertions; `PdfAssertionException` |
 | `src/Shared` | Source shared into every `src/` project (`Throw`) |
 | `tests/` | xUnit v3 on Microsoft.Testing.Platform; `PdfProof.Corpus.Tests` runs the corpus matrix and the external corpus |
