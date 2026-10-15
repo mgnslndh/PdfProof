@@ -1,134 +1,184 @@
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
-using PdfProof.Layout;
+using PdfProof.Semantics;
 
 namespace PdfProof.Corpus.Tests;
 
-// Compares a loaded document with its oracle at the level the layout and structure models allow until the semantic
-// model exists (Plan 5): title and page count; every block's text found in order (on its page, when the oracle gives
-// one); its links; for tagged producers, the blocks' structure roles in order; and the artifacts on every page. Text
-// is compared with whitespace collapsed. Returns the mismatches; empty means the document matches.
+// Compares a loaded document's semantic model with its oracle (spec §10.2): title and page count; the blocks in order
+// by type, page, level, text, table header and rows, list items and links; and the artifacts by role, text and pages.
+// What the oracle leaves out is not compared. Text is compared with whitespace collapsed. Returns the mismatches.
 internal static class OracleComparison
 {
-    public static IReadOnlyList<string> Compare(Oracle oracle, PdfProofDocument document, bool checkRoles)
+    public static IReadOnlyList<string> Compare(Oracle oracle, PdfProofDocument document)
     {
         var mismatches = new List<string>();
-        var pages = document.Layout.Pages;
         if (oracle.Title is { } title && document.Metadata.Title != title)
         {
             mismatches.Add($"title: expected \"{title}\", was \"{document.Metadata.Title}\"");
         }
 
-        if (oracle.PageCount is { } count && pages.Count != count)
+        if (oracle.PageCount is { } count && document.Metadata.PageCount != count)
         {
-            mismatches.Add($"page count: expected {count}, was {pages.Count}");
+            mismatches.Add($"page count: expected {count}, was {document.Metadata.PageCount}");
         }
 
-        // All page texts joined by a space; pageStart[i] is where page i + 1 begins.
-        var texts = pages.Select(page => Normalize(page.Text)).ToList();
-        var pageStart = new List<int>();
-        var joined = new StringBuilder();
-        foreach (var text in texts)
+        var blocks = document.Semantics.Blocks;
+        if (blocks.Count != oracle.Blocks.Count)
         {
-            pageStart.Add(joined.Length);
-            joined.Append(text).Append(' ');
+            mismatches.Add($"blocks: expected {oracle.Blocks.Count}, found {blocks.Count}: {string.Join(", ", blocks.Select(b => $"{Kind(b)} \"{Excerpt(b.Text)}\""))}");
         }
 
-        var haystack = joined.ToString();
-        var cursor = 0;
-        for (var b = 0; b < oracle.Blocks.Count; b++)
+        for (var i = 0; i < Math.Min(blocks.Count, oracle.Blocks.Count); i++)
         {
-            var block = oracle.Blocks[b];
-            var where = block.Page is { } onPage ? $" on page {onPage}" : "";
-            var start = cursor;
-            var end = haystack.Length;
-            if (block.Page is { } page)
-            {
-                if (page < 1 || page > pages.Count)
-                {
-                    mismatches.Add($"block {b + 1} ({block.Type}): page {page} doesn't exist");
-                    continue;
-                }
+            Block(i + 1, oracle.Blocks[i], blocks[i], mismatches);
+        }
 
-                start = Math.Max(cursor, pageStart[page - 1]);
-                end = pageStart[page - 1] + texts[page - 1].Length;
+        foreach (var expected in oracle.Artifacts)
+        {
+            var role = expected.Role.ToLowerInvariant();
+            var match = document.Semantics.Artifacts.FirstOrDefault(a => Name(a.Role) == role && Normalize(a.Text) == Normalize(expected.Text));
+            if (match is null)
+            {
+                mismatches.Add($"artifact: expected {role} \"{expected.Text}\", found {Found(document.Semantics.Artifacts)}");
             }
-
-            foreach (var text in block.Texts)
+            else if (expected.Pages is { } pages && Range(match.Pages) != pages)
             {
-                var needle = Normalize(text);
-                var at = start <= end ? haystack.IndexOf(needle, start, StringComparison.Ordinal) : -1;
-                if (at < 0 || at + needle.Length > end)
-                {
-                    mismatches.Add($"block {b + 1} ({block.Type}): \"{text}\" not found{where} after the previous block's text");
-                    continue;
-                }
-
-                start = cursor = at + needle.Length;
-            }
-
-            foreach (var link in block.Links.Where(link => !HasLink(pages, block.Page, link)))
-            {
-                mismatches.Add($"block {b + 1} ({block.Type}): no link \"{link.Text}\" to {Target(link)}{where}");
+                mismatches.Add($"artifact: expected {role} \"{expected.Text}\" on pages {pages}, found {Name(match.Role)} \"{match.Text}\" on pages {Range(match.Pages)}");
             }
         }
 
-        if (checkRoles)
+        foreach (var artifact in document.Semantics.Artifacts.Where(a => !oracle.Artifacts.Any(e => e.Role.ToLowerInvariant() == Name(a.Role) && Normalize(e.Text) == Normalize(a.Text))))
         {
-            Roles(oracle, document, mismatches);
-        }
-
-        foreach (var artifact in oracle.Artifacts)
-        {
-            for (var i = 0; i < pages.Count; i++)
-            {
-                var expected = Normalize(artifact.Text
-                    .Replace("{n}", (i + 1).ToString(CultureInfo.InvariantCulture))
-                    .Replace("{N}", pages.Count.ToString(CultureInfo.InvariantCulture)));
-                if (texts[i].IndexOf(expected, StringComparison.Ordinal) < 0)
-                {
-                    mismatches.Add($"page {i + 1}: {artifact.Role} \"{expected}\" not found");
-                }
-            }
+            mismatches.Add($"artifact: unexpected {Name(artifact.Role)} \"{artifact.Text}\" on pages {Range(artifact.Pages)}");
         }
 
         return mismatches;
     }
 
-    private static bool HasLink(IReadOnlyList<LayoutPage> pages, int? page, OracleLink expected)
+    private static void Block(int number, OracleBlock expected, SemanticBlock actual, List<string> mismatches)
     {
-        IEnumerable<LayoutPage> scope = page is { } number && number >= 1 && number <= pages.Count ? [pages[number - 1]] : pages;
-        return scope
-            .SelectMany(candidate => candidate.Links)
-            .Any(link => Normalize(link.Text) == Normalize(expected.Text)
-                && (expected.Uri is null || link.Uri == expected.Uri)
-                && (expected.Page is null || link.TargetPage == expected.Page));
-    }
-
-    private static string Target(OracleLink link) => link.Uri ?? (link.Page is { } page ? $"page {page}" : "anywhere");
-
-    // Tagged producers must declare the blocks' roles in document order; other elements may come in between.
-    private static void Roles(Oracle oracle, PdfProofDocument document, List<string> mismatches)
-    {
-        var roles = document.Structure.Root.Descendants().Select(node => node.Role).ToList();
-        var at = 0;
-        for (var b = 0; b < oracle.Blocks.Count; b++)
+        var where = $"block {number} ({expected.Type})";
+        if (Kind(actual) != expected.Type)
         {
-            var expected = oracle.Blocks[b].Role;
-            var found = roles.FindIndex(at, role => expected == "H" ? IsHeading(role) : role == expected);
-            if (found < 0)
-            {
-                mismatches.Add($"structure: no {expected} element for block {b + 1} ({oracle.Blocks[b].Type}) after the previous block's; roles in order: {string.Join(" ", roles)}");
-                continue;
-            }
+            mismatches.Add($"{where}: found {Kind(actual)} \"{Excerpt(actual.Text)}\"");
+            return;
+        }
 
-            at = found + 1;
+        if (expected.Page is { } page && actual.Page != page)
+        {
+            mismatches.Add($"{where}: expected page {page}, found page {actual.Page}");
+        }
+
+        switch (actual)
+        {
+            case SemanticHeading heading:
+                if (expected.Level is { } level && heading.Level != level)
+                {
+                    mismatches.Add($"{where}: expected level {level}, found {heading.Level}");
+                }
+
+                Text(where, expected.Text, heading.Text, mismatches);
+                break;
+            case SemanticParagraph paragraph:
+                Text(where, expected.Text, paragraph.Text, mismatches);
+                break;
+            case SemanticTable table:
+                if (expected.Header.Count > 0)
+                {
+                    var header = table.Header is null ? "none" : Cells(table.Header);
+                    if (header != Join(expected.Header))
+                    {
+                        mismatches.Add($"{where}: expected header {Join(expected.Header)}, found {header}");
+                    }
+                }
+
+                var rows = table.Rows.Select(Cells).ToList();
+                var expectedRows = expected.Rows.Select(Join).ToList();
+                if (expectedRows.Count > 0 && !rows.SequenceEqual(expectedRows))
+                {
+                    mismatches.Add($"{where}: expected rows {string.Join(", ", expectedRows)}, found {string.Join(", ", rows)}");
+                }
+
+                break;
+            case SemanticList list:
+                var items = list.Items.Select(item => Normalize(item.Text)).ToList();
+                if (expected.Items.Count > 0 && !items.SequenceEqual(expected.Items.Select(Normalize)))
+                {
+                    mismatches.Add($"{where}: expected items [{string.Join(" | ", expected.Items)}], found [{string.Join(" | ", items)}]");
+                }
+
+                break;
+        }
+
+        var runs = Runs(actual).Where(run => run.Link is not null).ToList();
+        foreach (var link in expected.Links.Where(link => !runs.Any(run =>
+            Normalize(run.Text) == Normalize(link.Text)
+            && (link.Uri is null || run.Link!.Uri == link.Uri)
+            && (link.Page is null || run.Link!.TargetPage == link.Page))))
+        {
+            mismatches.Add($"{where}: no link \"{link.Text}\" to {link.Uri ?? (link.Page is { } target ? $"page {target}" : "anywhere")}");
+        }
+
+        foreach (var run in runs.Where(run => !expected.Links.Any(link => Normalize(link.Text) == Normalize(run.Text))))
+        {
+            mismatches.Add($"{where}: unexpected link \"{run.Text}\" to {run.Link}");
         }
     }
 
-    private static bool IsHeading(string role) =>
-        role == "H" || (role.Length == 2 && role[0] == 'H' && role[1] >= '1' && role[1] <= '6');
+    private static void Text(string where, string? expected, string actual, List<string> mismatches)
+    {
+        if (expected is not null && Normalize(expected) != Normalize(actual))
+        {
+            mismatches.Add($"{where}: expected text \"{expected}\", found \"{actual}\"");
+        }
+    }
+
+    private static IEnumerable<SemanticRun> Runs(SemanticBlock block) => block switch
+    {
+        SemanticHeading heading => heading.Runs,
+        SemanticParagraph paragraph => paragraph.Runs,
+        SemanticList list => list.Items.SelectMany(item => item.Runs),
+        SemanticTable table => (table.Header is { } header ? new[] { header } : []).Concat(table.Rows).SelectMany(row => row.Cells).SelectMany(cell => cell.Runs),
+        _ => [],
+    };
+
+    private static string Kind(SemanticBlock block) => block switch
+    {
+        SemanticHeading => "heading",
+        SemanticParagraph => "paragraph",
+        SemanticTable => "table",
+        SemanticList => "list",
+        _ => "figure",
+    };
+
+    private static string Name(SemanticArtifactRole role) => role == SemanticArtifactRole.Header ? "header" : "footer";
+
+    private static string Found(IReadOnlyList<SemanticArtifact> artifacts) =>
+        artifacts.Count == 0 ? "none" : string.Join(", ", artifacts.Select(a => $"{Name(a.Role)} \"{a.Text}\""));
+
+    private static string Cells(SemanticRow row) => Join(row.Cells.Select(cell => cell.Text).ToList());
+
+    private static string Join(IReadOnlyList<string> cells) => "[" + string.Join(" | ", cells.Select(Normalize)) + "]";
+
+    // Pages as ranges: 1, 2, 3, 5 → "1-3,5".
+    private static string Range(IReadOnlyList<int> pages)
+    {
+        var parts = new List<string>();
+        for (var i = 0; i < pages.Count; i++)
+        {
+            var start = pages[i];
+            while (i + 1 < pages.Count && pages[i + 1] == pages[i] + 1)
+            {
+                i++;
+            }
+
+            parts.Add(start == pages[i] ? start.ToString(CultureInfo.InvariantCulture) : $"{start.ToString(CultureInfo.InvariantCulture)}-{pages[i].ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        return string.Join(",", parts);
+    }
+
+    private static string Excerpt(string text) => text.Length <= 40 ? text : text.Substring(0, 40) + "...";
 
     private static string Normalize(string text) => Regex.Replace(text, @"\s+", " ").Trim();
 }

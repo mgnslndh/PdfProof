@@ -1,5 +1,6 @@
 using System.Globalization;
 using PdfProof.Layout;
+using PdfProof.Semantics;
 using PdfProof.Structure;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Exceptions;
@@ -12,11 +13,12 @@ namespace PdfProof;
 /// </summary>
 public sealed class PdfProofDocument
 {
-    private PdfProofDocument(PdfMetadata metadata, LayoutModel layout, StructureModel structure, PdfDiagnostics diagnostics)
+    private PdfProofDocument(PdfMetadata metadata, LayoutModel layout, StructureModel structure, SemanticModel semantics, PdfDiagnostics diagnostics)
     {
         Metadata = metadata;
         Layout = layout;
         Structure = structure;
+        Semantics = semantics;
         Diagnostics = diagnostics;
     }
 
@@ -28,6 +30,9 @@ public sealed class PdfProofDocument
 
     /// <summary>The Tagged PDF structure tree; empty, with <see cref="StructureModel.IsTagged"/> false, when the PDF isn't tagged.</summary>
     public StructureModel Structure { get; }
+
+    /// <summary>What the PDF means: headings, paragraphs, tables, lists, figures, links and sections, from tags or inferred from the layout.</summary>
+    public SemanticModel Semantics { get; }
 
     /// <summary>The profile used and every decision and warning recorded while loading.</summary>
     public PdfDiagnostics Diagnostics { get; }
@@ -205,7 +210,8 @@ public sealed class PdfProofDocument
             }
         }
 
-        return new PdfProofDocument(metadata, layout, structure, diagnostics.ToDiagnostics(profile, detected));
+        var semantics = SemanticBuilder.Build(layoutResult, structure, profile.Semantics, diagnostics);
+        return new PdfProofDocument(metadata, layout, structure, semantics, diagnostics.ToDiagnostics(profile, detected));
     }
 
     // PdfPig throws PdfDocumentEncryptedException from Open when the password is missing or wrong (probed with

@@ -18,13 +18,15 @@ internal static class LayoutBuilder
     {
         var pageCount = PdfPigCall.Read(() => document.NumberOfPages);
         var pages = new List<LayoutPage>(pageCount);
-        var markedText = new Dictionary<int, IReadOnlyDictionary<int, string>>();
+        var markedText = new Dictionary<int, IReadOnlyDictionary<int, MarkedText>>();
+        var markers = new Dictionary<int, IReadOnlyList<LayoutBox>>();
         var formFields = FormFieldReader.Read(document, options, diagnostics);
         for (var number = 1; number <= pageCount; number++)
         {
             var pageNumber = number;
             var page = PdfPigCall.Read(() => document.GetPage(pageNumber), pageNumber);
             pages.Add(BuildPage(page, pageNumber, options, diagnostics, formFields.TryGetValue(pageNumber, out var fields) ? fields : []));
+            markers[pageNumber] = Markers(page, pageNumber, options);
             if (collectMarkedText)
             {
                 var marked = PdfPigCall.Read(() => page.GetMarkedContents().ToList(), pageNumber);
@@ -32,7 +34,7 @@ internal static class LayoutBuilder
             }
         }
 
-        return new LayoutBuildResult(new LayoutModel(pages, Bookmarks(document, diagnostics)), markedText);
+        return new LayoutBuildResult(new LayoutModel(pages, Bookmarks(document, diagnostics)), markedText, markers);
     }
 
     private static LayoutPage BuildPage(Page page, int number, LayoutOptions options, DiagnosticsCollector diagnostics, IReadOnlyList<LayoutFormField> formFields)
@@ -90,6 +92,20 @@ internal static class LayoutBuilder
             images,
             otherAnnotations,
             formFields);
+    }
+
+    // Small paths (a bullet is a few points across): candidates for list markers drawn as shapes. Paths outside the
+    // visible page (HTML converters draw the whole document on every page) are left out.
+    private static IReadOnlyList<LayoutBox> Markers(Page page, int number, LayoutOptions options)
+    {
+        var visible = page.CropBox.Bounds;
+        return PdfPigCall.Read(() => page.Paths.Select(path => path.GetBoundingRectangle()).ToList(), number)
+            .Where(rectangle => rectangle is { } r && Geometry.Intersects(r, visible))
+            .Select(rectangle => Geometry.Round(Geometry.Bounds(rectangle!.Value), options.Decimals))
+            .Where(box => box.Width >= 0.5 && box.Height >= 0.5 && box.Width <= 12 && box.Height <= 12)
+            .Distinct()
+            .OrderByDescending(box => box.Top).ThenBy(box => box.Left)
+            .ToList();
     }
 
     private static LayoutLink Link(Annotation annotation, IReadOnlyList<LayoutWord> words, IReadOnlyList<LayoutWord> rotatedWords, LayoutOptions options)

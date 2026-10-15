@@ -27,69 +27,80 @@ public sealed class OracleComparisonTests
         """);
 
     [Fact]
-    public void A_document_that_shows_everything_in_order_has_no_mismatches()
+    public void A_document_with_the_same_blocks_links_and_footer_has_no_mismatches()
     {
-        Assert.Empty(OracleComparison.Compare(Expected, Invoice(), checkRoles: false));
+        Assert.Empty(OracleComparison.Compare(Expected, Invoice()));
     }
 
     [Fact]
     public void A_different_title_is_a_mismatch()
     {
-        Assert.Equal(["title: expected \"Invoice\", was \"Bill\""], OracleComparison.Compare(Expected, Invoice(title: "Bill"), checkRoles: false));
+        Assert.Equal(["title: expected \"Invoice\", was \"Bill\""], OracleComparison.Compare(Expected, Invoice(title: "Bill")));
     }
 
     [Fact]
-    public void Missing_text_is_reported_with_its_block_and_page()
+    public void A_different_text_is_reported_with_its_block()
     {
         Assert.Equal(
-            ["block 5 (heading): \"Terms and conditions\" not found on page 2 after the previous block's text"],
-            OracleComparison.Compare(Expected, Invoice(terms: "Terms"), checkRoles: false));
+            ["block 5 (heading): expected text \"Terms and conditions\", found \"Terms\""],
+            OracleComparison.Compare(Expected, Invoice(terms: "Terms")));
     }
 
     [Fact]
-    public void Text_in_the_wrong_order_is_a_mismatch()
+    public void Blocks_in_another_order_are_a_mismatch()
     {
         var swapped = Expected with { Blocks = [Expected.Blocks[0], Expected.Blocks[2], Expected.Blocks[1], .. Expected.Blocks.Skip(3)] };
 
-        Assert.Equal(
-            ["block 3 (paragraph): \"Visit our support site\" not found on page 1 after the previous block's text"],
-            OracleComparison.Compare(swapped, Invoice(), checkRoles: false));
+        Assert.Contains(
+            "block 2 (paragraph): expected text \"Read the terms and conditions\", found \"Visit our support site\"",
+            OracleComparison.Compare(swapped, Invoice()));
+    }
+
+    [Fact]
+    public void A_missing_table_header_is_a_mismatch()
+    {
+        Assert.Contains(
+            "block 4 (table): expected header [Item | Qty | Amount], found none",
+            OracleComparison.Compare(Expected, Invoice(boldHeader: false)));
     }
 
     [Fact]
     public void A_link_to_the_wrong_target_is_a_mismatch()
     {
         Assert.Equal(
-            ["block 2 (paragraph): no link \"Visit our support site\" to https://example.com/support on page 1"],
-            OracleComparison.Compare(Expected, Invoice(support: "https://example.com/other"), checkRoles: false));
+            ["block 2 (paragraph): no link \"Visit our support site\" to https://example.com/support"],
+            OracleComparison.Compare(Expected, Invoice(support: "https://example.com/other")));
     }
 
     [Fact]
-    public void A_missing_footer_is_reported_for_its_page()
+    public void An_artifact_on_other_pages_than_expected_is_a_mismatch()
     {
         Assert.Equal(
-            ["page 2: footer \"Page 2 of 2\" not found"],
-            OracleComparison.Compare(Expected, Invoice(footerOnSecondPage: false), checkRoles: false));
+            ["artifact: expected footer \"Page {n} of {N}\" on pages 1-2, found footer \"Page {n} of {N}\" on pages 1"],
+            OracleComparison.Compare(Expected, Invoice(footerOnSecondPage: false)));
     }
 
-    [Fact]
-    public void Tagged_documents_must_declare_the_blocks_roles_in_order()
+    // Two pages laid out like the oracle; each argument breaks one thing.
+    private static PdfProofDocument Invoice(
+        string title = "Invoice", string support = "https://example.com/support", string terms = "Terms and conditions",
+        bool footerOnSecondPage = true, bool boldHeader = true)
     {
-        var oracle = Oracle.Parse(
-            """
-            { "semantics": { "blocks": [
-              { "type": "heading", "level": 1, "text": "Invoice" },
-              { "type": "paragraph", "text": "Hello" },
-              { "type": "list", "items": ["Payment within 30 days."] } ] } }
-            """);
-        var asLevelTwo = Oracle.Parse(
-            """
-            { "semantics": { "blocks": [ { "type": "heading", "level": 2, "text": "Invoice" } ] } }
-            """);
-
-        Assert.Empty(OracleComparison.Compare(oracle, Tagged(), checkRoles: true));
-        var mismatch = Assert.Single(OracleComparison.Compare(asLevelTwo, Tagged(), checkRoles: true));
-        Assert.Equal("structure: no H2 element for block 1 (heading) after the previous block's; roles in order: Document H1 P L LI", mismatch);
+        var header = boldHeader ? "F2" : "F1";
+        var pdf = new RawPdf { Info = $"<< /Title ({title}) >>" };
+        var first = pdf.AddPage(
+            RawPdf.Text(50, 750, "Invoice", 18) +
+            RawPdf.Text(50, 700, "Visit our support site") +
+            RawPdf.Text(50, 680, "Read the terms and conditions") +
+            RawPdf.Text(50, 640, "Item", 12, header) + RawPdf.Text(250, 640, "Qty", 12, header) + RawPdf.Text(350, 640, "Amount", 12, header) +
+            RawPdf.Text(50, 620, "Consulting, senior") + RawPdf.Text(250, 620, "10") + RawPdf.Text(350, 620, "14 500,00 SEK") +
+            RawPdf.Text(270, 40, "Page 1 of 2", 10));
+        var second = pdf.AddPage(
+            RawPdf.Text(50, 750, terms, 14) +
+            RawPdf.Text(50, 720, "- Payment within 30 days.") +
+            (footerOnSecondPage ? RawPdf.Text(270, 40, "Page 2 of 2", 10) : ""));
+        pdf.Annotate(first, $"<< /Type /Annot /Subtype /Link /Rect [45 695 250 715] /A << /S /URI /URI ({support}) >> >>");
+        pdf.Annotate(first, $"<< /Type /Annot /Subtype /Link /Rect [45 675 250 695] /A << /S /GoTo /D [{second} 0 R /Fit] >> >>");
+        return PdfProofDocument.Load(pdf.Build());
     }
 
     [Fact]
@@ -108,43 +119,23 @@ public sealed class OracleComparisonTests
         Assert.Equal(("Invoice", (int?)2), (oracle.Title, oracle.PageCount));
         Assert.Equal(["heading", "paragraph", "paragraph", "table", "heading", "list"], oracle.Blocks.Select(b => b.Type));
         Assert.Equal(["Item", "Qty", "Amount", "Consulting, senior", "10", "14 500,00 SEK"], oracle.Blocks[3].Texts);
-        Assert.Equal(["H1", "P", "P", "Table", "H2", "L"], oracle.Blocks.Select(b => b.Role));
     }
 
-    // Two pages laid out like the oracle; each argument breaks one thing.
-    private static PdfProofDocument Invoice(
-        string title = "Invoice", string support = "https://example.com/support", string terms = "Terms and conditions", bool footerOnSecondPage = true)
+    [Fact]
+    public void A_link_the_oracle_does_not_expect_is_a_mismatch()
     {
-        var pdf = new RawPdf { Info = $"<< /Title ({title}) >>" };
-        var first = pdf.AddPage(
-            RawPdf.Text(50, 750, "Invoice", 18) +
-            RawPdf.Text(50, 700, "Visit our support site") +
-            RawPdf.Text(50, 680, "Read the terms and conditions") +
-            RawPdf.Text(50, 640, "Item") + RawPdf.Text(250, 640, "Qty") + RawPdf.Text(350, 640, "Amount") +
-            RawPdf.Text(50, 620, "Consulting, senior") + RawPdf.Text(250, 620, "10") + RawPdf.Text(350, 620, "14 500,00 SEK") +
-            RawPdf.Text(270, 40, "Page 1 of 2", 10));
-        var second = pdf.AddPage(
-            RawPdf.Text(50, 750, terms, 14) +
-            RawPdf.Text(50, 720, "Payment within 30 days.") +
-            (footerOnSecondPage ? RawPdf.Text(270, 40, "Page 2 of 2", 10) : ""));
-        pdf.Annotate(first, $"<< /Type /Annot /Subtype /Link /Rect [45 695 250 715] /A << /S /URI /URI ({support}) >> >>");
-        pdf.Annotate(first, $"<< /Type /Annot /Subtype /Link /Rect [45 675 250 695] /A << /S /GoTo /D [{second} 0 R /Fit] >> >>");
-        return PdfProofDocument.Load(pdf.Build());
+        var withoutLink = Expected with { Blocks = [Expected.Blocks[0], Expected.Blocks[1] with { Links = [] }, .. Expected.Blocks.Skip(2)] };
+
+        Assert.Equal(
+            ["block 2 (paragraph): unexpected link \"Visit our support site\" to https://example.com/support"],
+            OracleComparison.Compare(withoutLink, Invoice()));
     }
 
-    private static PdfProofDocument Tagged()
+    [Fact]
+    public void An_artifact_the_oracle_does_not_expect_is_a_mismatch()
     {
-        var pdf = new RawPdf();
-        var page = pdf.AddPage(
-            RawPdf.Marked("H1", 0, RawPdf.Text(50, 750, "Invoice", 18)) +
-            RawPdf.Marked("P", 1, RawPdf.Text(50, 700, "Hello")) +
-            RawPdf.Marked("LI", 2, RawPdf.Text(50, 650, "Payment within 30 days.")));
-        var heading = pdf.Add($"<< /S /H1 /Pg {page} 0 R /K 0 >>");
-        var paragraph = pdf.Add($"<< /S /P /Pg {page} 0 R /K 1 >>");
-        var item = pdf.Add($"<< /S /LI /Pg {page} 0 R /K 2 >>");
-        var list = pdf.Add($"<< /S /L /K [{item} 0 R] >>");
-        var document = pdf.Add($"<< /S /Document /K [{heading} 0 R {paragraph} 0 R {list} 0 R] >>");
-        pdf.Tag($"{document} 0 R");
-        return PdfProofDocument.Load(pdf.Build());
+        Assert.Equal(
+            ["artifact: unexpected footer \"Page {n} of {N}\" on pages 1-2"],
+            OracleComparison.Compare(Expected with { Artifacts = [] }, Invoice()));
     }
 }

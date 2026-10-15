@@ -22,6 +22,9 @@ public sealed class ExternalCorpusTests
         Assert.Equal((LayoutFormFieldKind.Text, (string?)null, new LayoutBox(58.6, 660, 576, 674)), (name.Kind, name.Value, name.Box));
         var box = Assert.Single(fields, f => f.Name.EndsWith(".c1_1[0]", StringComparison.Ordinal));
         Assert.Equal((LayoutFormFieldKind.Checkbox, (bool?)false), (box.Kind, box.IsChecked));
+        Assert.Equal(PdfProof.Semantics.SemanticSource.Declared, doc.Semantics.Source);
+        Assert.Contains(doc.Semantics.Headings, h => h.Text == "Form W-9");
+        Assert.True(doc.Semantics.Blocks.Count > 20);
     }
 
     [Fact]
@@ -35,5 +38,7 @@ public sealed class ExternalCorpusTests
         Assert.Equal(19, fields.Count);
         var first = Assert.Single(fields, f => f.Name.EndsWith(".f1_01[0]", StringComparison.Ordinal));
         Assert.Equal((LayoutFormFieldKind.Text, new LayoutBox(94.6, 684, 272.9, 698)), (first.Kind, first.Box));
+        Assert.Equal(PdfProof.Semantics.SemanticSource.Declared, doc.Semantics.Source);
+        Assert.NotEmpty(doc.Semantics.Headings);
     }
 }

@@ -41,7 +41,7 @@ public sealed class GeneratedCorpusTests
             }
 
             var oracle = Oracle.Load(Path.Combine(sources, "expected.semantics.json"));
-            mismatches.AddRange(OracleComparison.Compare(oracle, pdf, checkRoles: producer.Tagged && pdf.Structure.IsTagged));
+            mismatches.AddRange(OracleComparison.Compare(oracle, pdf));
         }
 
         var verdict = MatrixVerdict.Of(producer.Name, mismatches, Deviations.Load(Path.Combine(sources, "deviations.json")), loadError);

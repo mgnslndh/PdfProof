@@ -35,4 +35,10 @@ public static class PdfDiagnosticCodes
 
     /// <summary>The form fields, or some of them, could not be read and are left out; pages are unaffected. Logged as a warning.</summary>
     public const string FormFieldsUnreadable = "FormFieldsUnreadable";
+
+    /// <summary>What the semantic model holds: its source and how many blocks and artifacts.</summary>
+    public const string Semantics = "Semantics";
+
+    /// <summary>The options ask for semantics from the structure tree, but the PDF isn't tagged. Logged as a warning.</summary>
+    public const string NoStructure = "NoStructure";
 }

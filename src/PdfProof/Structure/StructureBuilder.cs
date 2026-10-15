@@ -67,8 +67,8 @@ internal sealed class StructureBuilder
         marked.Page is { } page
         && _layout.MarkedText.TryGetValue(page, out var texts)
         && texts.TryGetValue(marked.Mcid, out var text)
-        && text.Length > 0
-            ? new StructureText(text, page, marked.Mcid)
+        && text.Text.Length > 0
+            ? new StructureText(text.Text, page, marked.Mcid)
             : null;
 
     // The layout link on the same page whose annotation has the same /Rect as written in the PDF, so its text and

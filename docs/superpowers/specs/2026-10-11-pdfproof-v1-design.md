@@ -148,7 +148,8 @@ PdfProofDocument
  │                                 page), bookmarks, fonts (embedded?)
  ├─ Structure    StructureModel    IsTagged, Root: StructureNode → Children (role after RoleMap, text, alt, actual
  │                                 text, lang, link targets, page)
- ├─ Semantics    SemanticModel     Source (Declared|Inferred), Blocks, Sections, Artifacts; navigation helpers
+ ├─ Semantics    SemanticModel     Source (Declared|Inferred), Blocks, Sections, Artifacts, Decisions (the decision
+ │                                 log: pass, page, block, message); navigation helpers
  │                                 Headings, Paragraphs, Tables, Lists, Figures, Links
  └─ Diagnostics  PdfDiagnostics    profile used, decision log, warnings (e.g. NoTextLayer, clipped letter counts)
 ```
@@ -237,15 +238,19 @@ All passes are deterministic: stable sorts with explicit tie-breakers, invariant
 
 | # | Pass | Applies to | Does | Main options |
 |---|---|---|---|---|
-| 0a | Layout front end | untagged | One candidate per `LayoutBlock`, kind `Unknown` | – |
-| 0b | Structure front end | tagged | Maps roles (`H1–H6`, `P`, `L/LI`, `Table/TR/TH/TD`, `Figure`, `Link`) to kinds; fixes producer quirks (e.g. QuestPDF puts link annotations on `P`) | – |
+| 0a | Layout front end | untagged | Splits each `LayoutBlock` into candidates of kind `Unknown` where font size, whole-line boldness, cell structure or line spacing changes (producers such as MigraDoc and Typst put a heading, paragraphs and a table in one layout block); each split is logged | – |
+| 0b | Structure front end | tagged | Maps roles (`H1–H6`, `H`, `P`, `L/LI/Lbl/LBody`, `Table/TR/TH/TD`, `Figure`, `Link`) to kinds; flattens containers (`Document`, `Part`, `Sect`, `Div`, `Art`, `Form`); fixes producer quirks: looks through `NonStruct`/`Span` (Chromium), folds a `P` inside `TH`/`TD`/`LI` into its cell or item and links on `P` to the text they cover (QuestPDF), strips `Lbl` from item text | – |
 | 1 | ArtifactDetection | both | Running headers, footers, page numbers: text in the top/bottom band that repeats at the same position across pages, digits normalized (`Page {n} of {N}`). One-page documents use page-number patterns only. | `BandRatio` (0.1), `MinPageFraction` (0.5), `PageNumberPatterns` |
 | 2 | CrossPageMerge | both | Merges a paragraph split by a page break (first part doesn't end a sentence, styles match) and a table split by a page break (columns align; repeated header row dropped) | `MergeParagraphs`, `MergeTables`, `ColumnTolerance` |
 | 3 | HeadingClassification | untagged | Body size = most common size weighted by characters. Short blocks clearly larger, or bold, short and followed by body text, become headings. Levels from size clusters, largest = 1. | `MinSizeRatio` (1.15), `MaxLines` (2), `BoldShortLineIsHeading` |
-| 4 | TableDetection | untagged (tagged: header normalization) | ≥ `MinRows` consecutive rows with ≥ 2 cells whose column edges align. Header = first row if its style differs or it is declared `TH`. | `MinRows` (2), `ColumnTolerance`, `HeaderDetection` |
-| 5 | ListDetection | untagged | Bullets (`• – ▪ *`) or numbering (`1.`, `a)`, `i.`) at consistent indentation; nesting by indentation | `BulletGlyphs`, `NumberingPatterns` |
-| 6 | LinkAttachment | both | Link annotations become inline `SemanticLink`s on the text they cover (letter centres inside the rectangle), or the tags' `OBJR` links | `MinOverlap` |
+| 4 | TableDetection | untagged (tagged: header from `THead` or a first row of `TH`, in the structure front end) | ≥ `MinRows` consecutive rows with ≥ 2 cells whose columns line up (merged cell extents, so left-, right- and centre-aligned cells match; at least two columns filled in every row). Header = first row if its boldness differs from the next row's. Rows that don't line up are logged with the reason. | `MinRows` (2), `ColumnTolerance` |
+| 5 | ListDetection | untagged | Bullets (`• – ▪ * -`), numbering (`1.`, `a)`, `i.`) or a **list marker shape** (a small filled path just left of the line, as HTML-to-PDF converters draw CSS bullets) at consistent indentation; nesting by indentation | `BulletGlyphs`, `NumberingPatterns` |
+| 6 | LinkAttachment | both | Link annotations become link runs on the text they cover: the words whose centres lie inside the rectangle, placed at their first unlinked occurrence in the line or cell under it. Tagged: `Link` elements link their text through `OBJR`; an `OBJR` on another element (QuestPDF puts them on the `P`) is placed by text, and links the tags don't connect are placed by geometry | – |
 | 7 | Finalize | both | `Unknown` becomes paragraph; section tree from headings; order assigned; model frozen | – |
+
+**Delivery:** Plan 5a builds the model, both front ends and passes 1, 3, 4, 5 (without nesting), 6 and 7, all exercised by the
+`invoice` corpus document. Plan 5b adds pass 2 (CrossPageMerge), nested lists and layout figures, together with the corpus
+documents that exercise them (`report`, `long-table`, `letter`).
 
 **Rules:**
 
@@ -568,9 +573,8 @@ tools/PdfProof.FixtureGenerator/Documents/InvoiceDocument.cs   QuestPDF and Migr
 ```
 
 - **Comparing against the oracle:** the block list must match in order. Properties missing from the oracle are
-  ignored (omit `level` to accept any heading level). Text is compared after normalization. Until the semantic
-  model exists, the corpus test compares what the layout and structure models can show: title and page count, block
-  text in order, links, structure roles of tagged producers, and the footer artifact.
+  ignored (omit `level` to accept any heading level). Text is compared after normalization. Links are compared by text
+  and target, tables by header and rows, list items by text, artifacts by role, text and page range.
 - **The corpus test is a matrix** of document × producer: pass, known deviation, or fail. A known deviation that
   starts passing fails the test until its entry is removed.
 - **Fixture sources use fixed dates and IDs.** The bytes still differ (`/ID`, CreationDate), but the comparison uses

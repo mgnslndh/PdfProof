@@ -243,3 +243,201 @@ PdfProof.Layout.LayoutFormFieldKind.RadioButton = 3 -> PdfProof.Layout.LayoutFor
 PdfProof.Layout.LayoutFormFieldKind.Signature = 7 -> PdfProof.Layout.LayoutFormFieldKind
 PdfProof.Layout.LayoutFormFieldKind.Text = 1 -> PdfProof.Layout.LayoutFormFieldKind
 PdfProof.Layout.LayoutFormFieldKind.Unknown = 0 -> PdfProof.Layout.LayoutFormFieldKind
+PdfProof.PdfProfile.Semantics.get -> PdfProof.Semantics.SemanticOptions!
+PdfProof.PdfProfile.Semantics.init -> void
+PdfProof.PdfProofDocument.Semantics.get -> PdfProof.Semantics.SemanticModel!
+PdfProof.Semantics.ArtifactDetectionOptions
+PdfProof.Semantics.ArtifactDetectionOptions.<Clone>$() -> PdfProof.Semantics.ArtifactDetectionOptions!
+PdfProof.Semantics.ArtifactDetectionOptions.ArtifactDetectionOptions() -> void
+PdfProof.Semantics.ArtifactDetectionOptions.BandRatio.get -> double
+PdfProof.Semantics.ArtifactDetectionOptions.BandRatio.init -> void
+PdfProof.Semantics.ArtifactDetectionOptions.Enabled.get -> bool
+PdfProof.Semantics.ArtifactDetectionOptions.Enabled.init -> void
+PdfProof.Semantics.ArtifactDetectionOptions.Equals(PdfProof.Semantics.ArtifactDetectionOptions? other) -> bool
+PdfProof.Semantics.ArtifactDetectionOptions.MinPageFraction.get -> double
+PdfProof.Semantics.ArtifactDetectionOptions.MinPageFraction.init -> void
+PdfProof.Semantics.ArtifactDetectionOptions.PageNumberPatterns.get -> System.Collections.Generic.IReadOnlyList<string!>!
+PdfProof.Semantics.ArtifactDetectionOptions.PageNumberPatterns.init -> void
+PdfProof.Semantics.HeadingClassificationOptions
+PdfProof.Semantics.HeadingClassificationOptions.<Clone>$() -> PdfProof.Semantics.HeadingClassificationOptions!
+PdfProof.Semantics.HeadingClassificationOptions.BoldShortLineIsHeading.get -> bool
+PdfProof.Semantics.HeadingClassificationOptions.BoldShortLineIsHeading.init -> void
+PdfProof.Semantics.HeadingClassificationOptions.Enabled.get -> bool
+PdfProof.Semantics.HeadingClassificationOptions.Enabled.init -> void
+PdfProof.Semantics.HeadingClassificationOptions.Equals(PdfProof.Semantics.HeadingClassificationOptions? other) -> bool
+PdfProof.Semantics.HeadingClassificationOptions.HeadingClassificationOptions() -> void
+PdfProof.Semantics.HeadingClassificationOptions.MaxLines.get -> int
+PdfProof.Semantics.HeadingClassificationOptions.MaxLines.init -> void
+PdfProof.Semantics.HeadingClassificationOptions.MinSizeRatio.get -> double
+PdfProof.Semantics.HeadingClassificationOptions.MinSizeRatio.init -> void
+PdfProof.Semantics.LinkAttachmentOptions
+PdfProof.Semantics.LinkAttachmentOptions.<Clone>$() -> PdfProof.Semantics.LinkAttachmentOptions!
+PdfProof.Semantics.LinkAttachmentOptions.Enabled.get -> bool
+PdfProof.Semantics.LinkAttachmentOptions.Enabled.init -> void
+PdfProof.Semantics.LinkAttachmentOptions.Equals(PdfProof.Semantics.LinkAttachmentOptions? other) -> bool
+PdfProof.Semantics.LinkAttachmentOptions.LinkAttachmentOptions() -> void
+PdfProof.Semantics.ListDetectionOptions
+PdfProof.Semantics.ListDetectionOptions.<Clone>$() -> PdfProof.Semantics.ListDetectionOptions!
+PdfProof.Semantics.ListDetectionOptions.BulletGlyphs.get -> System.Collections.Generic.IReadOnlyList<string!>!
+PdfProof.Semantics.ListDetectionOptions.BulletGlyphs.init -> void
+PdfProof.Semantics.ListDetectionOptions.Enabled.get -> bool
+PdfProof.Semantics.ListDetectionOptions.Enabled.init -> void
+PdfProof.Semantics.ListDetectionOptions.Equals(PdfProof.Semantics.ListDetectionOptions? other) -> bool
+PdfProof.Semantics.ListDetectionOptions.IndentTolerance.get -> double
+PdfProof.Semantics.ListDetectionOptions.IndentTolerance.init -> void
+PdfProof.Semantics.ListDetectionOptions.ListDetectionOptions() -> void
+PdfProof.Semantics.ListDetectionOptions.NumberingPatterns.get -> System.Collections.Generic.IReadOnlyList<string!>!
+PdfProof.Semantics.ListDetectionOptions.NumberingPatterns.init -> void
+PdfProof.Semantics.ListDetectionOptions.UseMarkerShapes.get -> bool
+PdfProof.Semantics.ListDetectionOptions.UseMarkerShapes.init -> void
+PdfProof.Semantics.SemanticArtifact
+PdfProof.Semantics.SemanticArtifact.Pages.get -> System.Collections.Generic.IReadOnlyList<int>!
+PdfProof.Semantics.SemanticArtifact.Role.get -> PdfProof.Semantics.SemanticArtifactRole
+PdfProof.Semantics.SemanticArtifact.Text.get -> string!
+PdfProof.Semantics.SemanticArtifactRole
+PdfProof.Semantics.SemanticArtifactRole.Footer = 1 -> PdfProof.Semantics.SemanticArtifactRole
+PdfProof.Semantics.SemanticArtifactRole.Header = 0 -> PdfProof.Semantics.SemanticArtifactRole
+PdfProof.Semantics.SemanticBlock
+PdfProof.Semantics.SemanticBlock.Page.get -> int
+PdfProof.Semantics.SemanticBlock.Source.get -> PdfProof.Semantics.SemanticSource
+PdfProof.Semantics.SemanticBlock.Text.get -> string!
+PdfProof.Semantics.SemanticCell
+PdfProof.Semantics.SemanticCell.Runs.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticRun!>!
+PdfProof.Semantics.SemanticCell.Text.get -> string!
+PdfProof.Semantics.SemanticDecision
+PdfProof.Semantics.SemanticDecision.Block.get -> PdfProof.Semantics.SemanticBlock?
+PdfProof.Semantics.SemanticDecision.Message.get -> string!
+PdfProof.Semantics.SemanticDecision.Page.get -> int?
+PdfProof.Semantics.SemanticDecision.Pass.get -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticFigure
+PdfProof.Semantics.SemanticFigure.Alt.get -> string?
+PdfProof.Semantics.SemanticHeading
+PdfProof.Semantics.SemanticHeading.Level.get -> int
+PdfProof.Semantics.SemanticHeading.Runs.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticRun!>!
+PdfProof.Semantics.SemanticLink
+PdfProof.Semantics.SemanticLink.TargetPage.get -> int?
+PdfProof.Semantics.SemanticLink.Uri.get -> string?
+PdfProof.Semantics.SemanticLinkedText
+PdfProof.Semantics.SemanticLinkedText.Block.get -> PdfProof.Semantics.SemanticBlock!
+PdfProof.Semantics.SemanticLinkedText.Link.get -> PdfProof.Semantics.SemanticLink!
+PdfProof.Semantics.SemanticLinkedText.Text.get -> string!
+PdfProof.Semantics.SemanticList
+PdfProof.Semantics.SemanticList.Items.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticListItem!>!
+PdfProof.Semantics.SemanticListItem
+PdfProof.Semantics.SemanticListItem.Runs.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticRun!>!
+PdfProof.Semantics.SemanticListItem.Text.get -> string!
+PdfProof.Semantics.SemanticModel
+PdfProof.Semantics.SemanticModel.Artifacts.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticArtifact!>!
+PdfProof.Semantics.SemanticModel.Blocks.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticBlock!>!
+PdfProof.Semantics.SemanticModel.Decisions.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticDecision!>!
+PdfProof.Semantics.SemanticModel.Figures.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticFigure!>!
+PdfProof.Semantics.SemanticModel.Headings.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticHeading!>!
+PdfProof.Semantics.SemanticModel.Links.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticLinkedText!>!
+PdfProof.Semantics.SemanticModel.Lists.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticList!>!
+PdfProof.Semantics.SemanticModel.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticParagraph!>!
+PdfProof.Semantics.SemanticModel.Sections.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticSection!>!
+PdfProof.Semantics.SemanticModel.Source.get -> PdfProof.Semantics.SemanticSource
+PdfProof.Semantics.SemanticModel.Tables.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticTable!>!
+PdfProof.Semantics.SemanticOptions
+PdfProof.Semantics.SemanticOptions.<Clone>$() -> PdfProof.Semantics.SemanticOptions!
+PdfProof.Semantics.SemanticOptions.Artifacts.get -> PdfProof.Semantics.ArtifactDetectionOptions!
+PdfProof.Semantics.SemanticOptions.Artifacts.init -> void
+PdfProof.Semantics.SemanticOptions.Equals(PdfProof.Semantics.SemanticOptions? other) -> bool
+PdfProof.Semantics.SemanticOptions.Headings.get -> PdfProof.Semantics.HeadingClassificationOptions!
+PdfProof.Semantics.SemanticOptions.Headings.init -> void
+PdfProof.Semantics.SemanticOptions.Links.get -> PdfProof.Semantics.LinkAttachmentOptions!
+PdfProof.Semantics.SemanticOptions.Links.init -> void
+PdfProof.Semantics.SemanticOptions.Lists.get -> PdfProof.Semantics.ListDetectionOptions!
+PdfProof.Semantics.SemanticOptions.Lists.init -> void
+PdfProof.Semantics.SemanticOptions.ParagraphGapFactor.get -> double
+PdfProof.Semantics.SemanticOptions.ParagraphGapFactor.init -> void
+PdfProof.Semantics.SemanticOptions.SemanticOptions() -> void
+PdfProof.Semantics.SemanticOptions.ShortLineRatio.get -> double
+PdfProof.Semantics.SemanticOptions.ShortLineRatio.init -> void
+PdfProof.Semantics.SemanticOptions.Source.get -> PdfProof.Semantics.SemanticSourceOption
+PdfProof.Semantics.SemanticOptions.Source.init -> void
+PdfProof.Semantics.SemanticOptions.Tables.get -> PdfProof.Semantics.TableDetectionOptions!
+PdfProof.Semantics.SemanticOptions.Tables.init -> void
+PdfProof.Semantics.SemanticParagraph
+PdfProof.Semantics.SemanticParagraph.Runs.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticRun!>!
+PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticRow
+PdfProof.Semantics.SemanticRow.Cells.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticCell!>!
+PdfProof.Semantics.SemanticRun
+PdfProof.Semantics.SemanticRun.IsBold.get -> bool
+PdfProof.Semantics.SemanticRun.IsItalic.get -> bool
+PdfProof.Semantics.SemanticRun.Link.get -> PdfProof.Semantics.SemanticLink?
+PdfProof.Semantics.SemanticRun.Text.get -> string!
+PdfProof.Semantics.SemanticSection
+PdfProof.Semantics.SemanticSection.Blocks.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticBlock!>!
+PdfProof.Semantics.SemanticSection.Heading.get -> PdfProof.Semantics.SemanticHeading!
+PdfProof.Semantics.SemanticSection.Sections.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticSection!>!
+PdfProof.Semantics.SemanticSource
+PdfProof.Semantics.SemanticSource.Declared = 0 -> PdfProof.Semantics.SemanticSource
+PdfProof.Semantics.SemanticSource.Inferred = 1 -> PdfProof.Semantics.SemanticSource
+PdfProof.Semantics.SemanticSourceOption
+PdfProof.Semantics.SemanticSourceOption.Auto = 0 -> PdfProof.Semantics.SemanticSourceOption
+PdfProof.Semantics.SemanticSourceOption.Layout = 2 -> PdfProof.Semantics.SemanticSourceOption
+PdfProof.Semantics.SemanticSourceOption.Structure = 1 -> PdfProof.Semantics.SemanticSourceOption
+PdfProof.Semantics.SemanticTable
+PdfProof.Semantics.SemanticTable.Header.get -> PdfProof.Semantics.SemanticRow?
+PdfProof.Semantics.SemanticTable.Rows.get -> System.Collections.Generic.IReadOnlyList<PdfProof.Semantics.SemanticRow!>!
+PdfProof.Semantics.TableDetectionOptions
+PdfProof.Semantics.TableDetectionOptions.<Clone>$() -> PdfProof.Semantics.TableDetectionOptions!
+PdfProof.Semantics.TableDetectionOptions.ColumnTolerance.get -> double
+PdfProof.Semantics.TableDetectionOptions.ColumnTolerance.init -> void
+PdfProof.Semantics.TableDetectionOptions.Enabled.get -> bool
+PdfProof.Semantics.TableDetectionOptions.Enabled.init -> void
+PdfProof.Semantics.TableDetectionOptions.Equals(PdfProof.Semantics.TableDetectionOptions? other) -> bool
+PdfProof.Semantics.TableDetectionOptions.MinRows.get -> int
+PdfProof.Semantics.TableDetectionOptions.MinRows.init -> void
+PdfProof.Semantics.TableDetectionOptions.TableDetectionOptions() -> void
+override PdfProof.Semantics.ArtifactDetectionOptions.Equals(object? obj) -> bool
+override PdfProof.Semantics.ArtifactDetectionOptions.GetHashCode() -> int
+override PdfProof.Semantics.ArtifactDetectionOptions.ToString() -> string!
+override PdfProof.Semantics.HeadingClassificationOptions.Equals(object? obj) -> bool
+override PdfProof.Semantics.HeadingClassificationOptions.GetHashCode() -> int
+override PdfProof.Semantics.HeadingClassificationOptions.ToString() -> string!
+override PdfProof.Semantics.LinkAttachmentOptions.Equals(object? obj) -> bool
+override PdfProof.Semantics.LinkAttachmentOptions.GetHashCode() -> int
+override PdfProof.Semantics.LinkAttachmentOptions.ToString() -> string!
+override PdfProof.Semantics.ListDetectionOptions.Equals(object? obj) -> bool
+override PdfProof.Semantics.ListDetectionOptions.GetHashCode() -> int
+override PdfProof.Semantics.ListDetectionOptions.ToString() -> string!
+override PdfProof.Semantics.SemanticDecision.ToString() -> string!
+override PdfProof.Semantics.SemanticLink.ToString() -> string!
+override PdfProof.Semantics.SemanticOptions.Equals(object? obj) -> bool
+override PdfProof.Semantics.SemanticOptions.GetHashCode() -> int
+override PdfProof.Semantics.SemanticOptions.ToString() -> string!
+override PdfProof.Semantics.TableDetectionOptions.Equals(object? obj) -> bool
+override PdfProof.Semantics.TableDetectionOptions.GetHashCode() -> int
+override PdfProof.Semantics.TableDetectionOptions.ToString() -> string!
+static PdfProof.Semantics.ArtifactDetectionOptions.Default.get -> PdfProof.Semantics.ArtifactDetectionOptions!
+static PdfProof.Semantics.ArtifactDetectionOptions.operator !=(PdfProof.Semantics.ArtifactDetectionOptions? left, PdfProof.Semantics.ArtifactDetectionOptions? right) -> bool
+static PdfProof.Semantics.ArtifactDetectionOptions.operator ==(PdfProof.Semantics.ArtifactDetectionOptions? left, PdfProof.Semantics.ArtifactDetectionOptions? right) -> bool
+static PdfProof.Semantics.HeadingClassificationOptions.Default.get -> PdfProof.Semantics.HeadingClassificationOptions!
+static PdfProof.Semantics.HeadingClassificationOptions.operator !=(PdfProof.Semantics.HeadingClassificationOptions? left, PdfProof.Semantics.HeadingClassificationOptions? right) -> bool
+static PdfProof.Semantics.HeadingClassificationOptions.operator ==(PdfProof.Semantics.HeadingClassificationOptions? left, PdfProof.Semantics.HeadingClassificationOptions? right) -> bool
+static PdfProof.Semantics.LinkAttachmentOptions.Default.get -> PdfProof.Semantics.LinkAttachmentOptions!
+static PdfProof.Semantics.LinkAttachmentOptions.operator !=(PdfProof.Semantics.LinkAttachmentOptions? left, PdfProof.Semantics.LinkAttachmentOptions? right) -> bool
+static PdfProof.Semantics.LinkAttachmentOptions.operator ==(PdfProof.Semantics.LinkAttachmentOptions? left, PdfProof.Semantics.LinkAttachmentOptions? right) -> bool
+static PdfProof.Semantics.ListDetectionOptions.Default.get -> PdfProof.Semantics.ListDetectionOptions!
+static PdfProof.Semantics.ListDetectionOptions.operator !=(PdfProof.Semantics.ListDetectionOptions? left, PdfProof.Semantics.ListDetectionOptions? right) -> bool
+static PdfProof.Semantics.ListDetectionOptions.operator ==(PdfProof.Semantics.ListDetectionOptions? left, PdfProof.Semantics.ListDetectionOptions? right) -> bool
+static PdfProof.Semantics.SemanticOptions.Default.get -> PdfProof.Semantics.SemanticOptions!
+static PdfProof.Semantics.SemanticOptions.operator !=(PdfProof.Semantics.SemanticOptions? left, PdfProof.Semantics.SemanticOptions? right) -> bool
+static PdfProof.Semantics.SemanticOptions.operator ==(PdfProof.Semantics.SemanticOptions? left, PdfProof.Semantics.SemanticOptions? right) -> bool
+static PdfProof.Semantics.TableDetectionOptions.Default.get -> PdfProof.Semantics.TableDetectionOptions!
+static PdfProof.Semantics.TableDetectionOptions.operator !=(PdfProof.Semantics.TableDetectionOptions? left, PdfProof.Semantics.TableDetectionOptions? right) -> bool
+static PdfProof.Semantics.TableDetectionOptions.operator ==(PdfProof.Semantics.TableDetectionOptions? left, PdfProof.Semantics.TableDetectionOptions? right) -> bool
+const PdfProof.PdfDiagnosticCodes.Semantics = "Semantics" -> string!
+PdfProof.Semantics.SemanticPass.ArtifactDetection = 2 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.CrossPageMerge = 3 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.Finalize = 8 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.HeadingClassification = 4 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.LayoutFrontEnd = 0 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.LinkAttachment = 7 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.ListDetection = 6 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.StructureFrontEnd = 1 -> PdfProof.Semantics.SemanticPass
+PdfProof.Semantics.SemanticPass.TableDetection = 5 -> PdfProof.Semantics.SemanticPass
+const PdfProof.PdfDiagnosticCodes.NoStructure = "NoStructure" -> string!
